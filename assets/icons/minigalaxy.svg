@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect x="5" y="5" width="118" height="118" rx="30" fill="#168dcc"/><path d="M29 52c0-9 8-16 18-16h34c10 0 18 7 18 16v27c0 9-8 16-18 16H47c-10 0-18-7-18-16z" fill="#fff"/><path d="M43 59v22M32 70h22" stroke="#168dcc" stroke-width="9" stroke-linecap="round"/><circle cx="82" cy="64" r="6" fill="#168dcc"/><circle cx="92" cy="77" r="5" fill="#168dcc"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="mini" x1="12" y1="9" x2="110" y2="119" gradientUnits="userSpaceOnUse"><stop stop-color="#48c4e9"/><stop offset=".55" stop-color="#168fd0"/><stop offset="1" stop-color="#1556a4"/></linearGradient></defs>
+<rect x="5" y="5" width="118" height="118" rx="31" fill="url(#mini)"/>
+<path d="M25 52c0-12 9-21 21-21h36c12 0 21 9 21 21v26c0 12-9 21-21 21H46c-12 0-21-9-21-21z" fill="#f8fdff"/>
+<path d="M43 55v24M31 67h24" fill="none" stroke="#1687c5" stroke-width="9" stroke-linecap="round"/>
+<circle cx="83" cy="61" r="6" fill="#1687c5"/><circle cx="94" cy="76" r="5" fill="#1687c5"/>
+<path d="M47 39c6-4 27-4 34 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+</svg>

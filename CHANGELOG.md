@@ -7,6 +7,8 @@
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
+- Redesenhados os 14 ícones vetoriais dos aplicativos com melhor definição de silhueta, volume, contraste e paletas.
+- Ajustados o raio dos cartões e o alinhamento interno entre ícone, nome, descrição e indicador de estado.
 - Adicionada janela modal de detalhes ao selecionar cartões de aplicativos, com ícone, categoria, descrição e estado.
 - Refinadas as superfícies de fundo e dos cartões com degradês por tema.
 - Ajustados tamanhos tipográficos e estados de hover da navegação e dos controles superiores.

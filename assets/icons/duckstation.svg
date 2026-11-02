@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><path d="m64 7 28 16-28 16-28-16z" fill="#9deaff"/><path d="M36 23 64 39v33L36 56z" fill="#1c9edc"/><path d="m92 23-28 16v33l28-16z" fill="#0871b5"/><path d="m35 61 28 16-28 16L7 77z" fill="#51c8eb"/><path d="M7 77 35 93v29L7 106z" fill="#167fc3"/><path d="m63 77-28 16v29l28-16z" fill="#0a5594"/><path d="m92 61 28 16-28 16-28-16z" fill="#8de4f7"/><path d="M64 77 92 93v29L64 106z" fill="#2799cf"/><path d="m120 77-28 16v29l28-16z" fill="#0870ad"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="duckTop" x1="22" y1="16" x2="102" y2="65" gradientUnits="userSpaceOnUse"><stop stop-color="#bcf5ff"/><stop offset="1" stop-color="#45bde7"/></linearGradient><linearGradient id="duckSide" x1="65" y1="34" x2="112" y2="115" gradientUnits="userSpaceOnUse"><stop stop-color="#1689c8"/><stop offset="1" stop-color="#064d91"/></linearGradient></defs>
+<path d="m64 6 48 27-48 28-48-28z" fill="url(#duckTop)"/>
+<path d="M16 33 64 61v57L16 91z" fill="#168acb"/>
+<path d="m112 33-48 28v57l48-27z" fill="url(#duckSide)"/>
+<path d="m64 61 48-28v25L64 86z" fill="#56cce9" opacity=".92"/>
+<path d="m16 33 48 28v25L16 58z" fill="#0a70b4" opacity=".9"/>
+<path d="m64 6 48 27-48 28-48-28z" fill="none" stroke="#d4f9ff" stroke-width="3" stroke-linejoin="round"/>
+</svg>

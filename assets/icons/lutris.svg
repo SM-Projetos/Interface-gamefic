@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#20d6e6"/><stop offset="1" stop-color="#0879b5"/></linearGradient></defs><circle cx="64" cy="64" r="60" fill="url(#b)"/><path d="M94 37c-13-14-39-18-57-3-17 14-21 39-8 57 14 19 43 23 62 8" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/><path d="M72 25 98 35 83 59" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="lutris" x1="13" y1="13" x2="110" y2="112" gradientUnits="userSpaceOnUse"><stop stop-color="#35dce9"/><stop offset=".55" stop-color="#118fc8"/><stop offset="1" stop-color="#07558e"/></linearGradient></defs>
+<circle cx="64" cy="64" r="60" fill="url(#lutris)"/>
+<path d="M93 31c-12-13-34-17-51-7-16 9-25 26-24 44 1 20 16 37 36 42 17 4 34-2 46-15" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+<path d="M75 19 101 31 88 56" fill="none" stroke="#eaffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M35 42c-6 13-3 29 8 38 8 7 18 9 28 6" fill="none" stroke="#bffaff" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+</svg>

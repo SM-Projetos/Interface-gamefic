@@ -336,7 +336,7 @@ component AppCard inherits Rectangle {
     min-width: 260px;
     max-width: 323px;
     height: 212px;
-    border-radius: 20px;
+    border-radius: 22px;
     border-width: root.highlighted || touch.has-hover ? 2px : 1px;
     border-color: root.highlighted || touch.has-hover ? Theme.accent : Theme.card-border;
     background: root.highlighted || touch.has-hover ? Theme.card-bg-highlight : Theme.card-bg;
@@ -349,17 +349,17 @@ component AppCard inherits Rectangle {
 
     VerticalLayout {
         padding: 22px;
-        spacing: 10px;
+        spacing: 12px;
 
         HorizontalLayout {
-            height: 68px;
+            height: 72px;
             spacing: 14px;
             alignment: start;
 
             Image {
                 source: root.app-icon;
-                width: 64px;
-                height: 64px;
+                width: 68px;
+                height: 68px;
                 image-fit: contain;
                 vertical-alignment: center;
             }
@@ -386,7 +386,7 @@ component AppCard inherits Rectangle {
             color: Theme.text-muted;
             font-size: 15px;
             font-weight: 450;
-            height: 27px;
+            height: 28px;
             vertical-alignment: center;
             overflow: elide;
         }

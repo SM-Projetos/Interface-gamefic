@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="d" x2="1" y2="1"><stop stop-color="#75e2b4"/><stop offset="1" stop-color="#098b72"/></linearGradient></defs><rect x="6" y="6" width="116" height="116" rx="30" fill="#062e3b"/><path d="M48 18h32v19l9 10v51c0 8-6 14-14 14H53c-8 0-14-6-14-14V47l9-10z" fill="url(#d)" stroke="#c9fff0" stroke-width="4"/><path d="M48 62h32" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="64" cy="81" r="10" fill="#fff" opacity=".9"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="glass" x1="33" y1="24" x2="95" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#b4f6cb"/><stop offset=".4" stop-color="#49d49b"/><stop offset="1" stop-color="#087b71"/></linearGradient></defs>
+<rect x="5" y="5" width="118" height="118" rx="30" fill="#082d3c"/>
+<path d="M49 14h30v15l-5 8v10l16 15v44c0 7-6 12-13 12H51c-7 0-13-5-13-12V62l16-15V37l-5-8z" fill="url(#glass)" stroke="#d5fff0" stroke-width="4" stroke-linejoin="round"/>
+<rect x="48" y="12" width="32" height="9" rx="3" fill="#d6fff1"/>
+<path d="M44 71h40v23H44z" fill="#e8fff4" opacity=".92"/>
+<path d="M54 79h20M54 86h13" stroke="#159b82" stroke-width="4" stroke-linecap="round"/>
+<path d="M45 57c-4 9-4 31-2 43" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+</svg>

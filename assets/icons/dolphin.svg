@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><path d="M13 78c18-28 37-38 60-31 16 5 28 17 43 34-19-7-31-7-42-3-13 4-25 17-43 13-8-2-14-7-18-13z" fill="#12c9e0"/><path d="M20 94c19-15 37-19 53-12 12 5 21 14 35 18-21 4-37 0-50-7-14-8-24-6-38 1z" fill="#147dbd"/><circle cx="99" cy="34" r="12" fill="#28d8e8"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="dolphin" x1="13" y1="37" x2="110" y2="92" gradientUnits="userSpaceOnUse"><stop stop-color="#42e3ed"/><stop offset=".55" stop-color="#128fc8"/><stop offset="1" stop-color="#1155a5"/></linearGradient></defs>
+<path d="M10 76c16-30 40-43 64-34 15 6 26 20 43 38-17-6-29-7-41-2-13 5-22 20-40 18-13-1-21-8-26-20z" fill="url(#dolphin)"/>
+<path d="M57 44 72 17l13 29-18-5z" fill="#38d5e5"/>
+<path d="M83 48c13 2 23 10 35 21l-17-3c-8-2-14-6-18-18z" fill="#149acb"/>
+<path d="M17 95c17-11 34-14 49-8 13 5 22 14 39 18-19 5-37 2-51-5-14-7-24-8-37-5z" fill="#1268b0"/>
+<circle cx="86" cy="52" r="2.8" fill="#063c70"/>
+</svg>
