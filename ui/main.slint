@@ -30,7 +30,7 @@ struct AppInfo {
 
 component NavigationItem inherits Rectangle {
     in property <string> label;
-    in property <string> glyph;
+    in property <image> icon-image;
     in property <bool> active;
     in property <length> item-height: 52px;
     callback selected();
@@ -44,13 +44,12 @@ component NavigationItem inherits Rectangle {
         padding-right: 10px;
         spacing: 12px;
         alignment: start;
-        Text {
-            text: root.glyph;
-            width: 24px;
-            color: root.active ? #ffffff : Theme.text-main;
-            font-size: 21px;
-            font-weight: 600;
-            horizontal-alignment: center;
+        Image {
+            source: root.icon-image;
+            width: 22px;
+            height: 22px;
+            image-fit: contain;
+            colorize: root.active ? #ffffff : Theme.text-main;
             vertical-alignment: center;
         }
         Text {
@@ -105,44 +104,44 @@ component Sidebar inherits Rectangle {
 
             NavigationItem {
                 label: "Apps";
-                glyph: "⌂";
+                icon-image: @image-url("../assets/icons/nav-apps.svg");
                 active: root.active-navigation == 0;
                 selected => { root.navigation-selected(0); }
             }
             NavigationItem {
                 label: "Criação de\nConteúdo";
-                glyph: "▣";
+                icon-image: @image-url("../assets/icons/nav-content.svg");
                 item-height: 58px;
                 active: root.active-navigation == 1;
                 selected => { root.navigation-selected(1); }
             }
             NavigationItem {
                 label: "Monitorado";
-                glyph: "✦";
+                icon-image: @image-url("../assets/icons/nav-monitor.svg");
                 active: root.active-navigation == 2;
                 selected => { root.navigation-selected(2); }
             }
             NavigationItem {
                 label: "Kernels e Drivers";
-                glyph: "✧";
+                icon-image: @image-url("../assets/icons/nav-drivers.svg");
                 active: root.active-navigation == 3;
                 selected => { root.navigation-selected(3); }
             }
             NavigationItem {
                 label: "Otimização";
-                glyph: "◇";
+                icon-image: @image-url("../assets/icons/nav-optimization.svg");
                 active: root.active-navigation == 4;
                 selected => { root.navigation-selected(4); }
             }
             NavigationItem {
                 label: "Overlay";
-                glyph: "▤";
+                icon-image: @image-url("../assets/icons/nav-overlay.svg");
                 active: root.active-navigation == 5;
                 selected => { root.navigation-selected(5); }
             }
             NavigationItem {
                 label: "Histórico e\nDiagnósticos";
-                glyph: "◈";
+                icon-image: @image-url("../assets/icons/nav-history.svg");
                 item-height: 58px;
                 active: root.active-navigation == 6;
                 selected => { root.navigation-selected(6); }
@@ -276,12 +275,12 @@ component TopBar inherits Rectangle {
             height: 42px;
             border-radius: 21px;
             background: #00000000;
-            Text {
-                text: "⚙";
-                color: Theme.text-main;
-                font-size: 25px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
+            Image {
+                source: @image-url("../assets/icons/settings.svg");
+                width: 25px;
+                height: 25px;
+                image-fit: contain;
+                colorize: Theme.text-main;
             }
             TouchArea {
                 clicked => { root.theme-toggle(); }

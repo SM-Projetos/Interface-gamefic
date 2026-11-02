@@ -7,6 +7,7 @@
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
+- Substituídos os glifos provisórios do menu lateral e do botão de configurações por ícones SVG monocromáticos colorizados pelo tema.
 - Ajustada a dimensão inicial da janela para 2048 px de largura, permitindo cinco cartões por linha na resolução de referência.
 - Aplicado degradê azul-marinho ao conteúdo, elevação dos cartões e destaque visual para seleção e hover.
 - Ações superiores de fontes e atualizações agora abrem suas respectivas telas provisórias.
