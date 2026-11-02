@@ -22,10 +22,10 @@ cargo run
 
 ## Interface
 
-A tela de Apps segue a referência visual fornecida: sidebar fixa, barra superior, conteúdo rolável, categorias em grade flexível, cartões de dimensões consistentes e janela modal de detalhes ao selecionar um aplicativo. O tema escuro é o padrão; o botão de configurações alterna entre tema escuro e claro.
+A tela de Apps segue a referência visual fornecida: sidebar fixa, barra superior, conteúdo rolável, categorias em grade flexível, cartões de dimensões consistentes e janela modal de detalhes com metadados e ações contextuais ao selecionar um aplicativo. O tema escuro é o padrão; o botão de configurações alterna entre tema escuro e claro.
 
 A grade usa cartões com largura preferencial de 323 px, altura de 212 px e espaçamento de 20 px. A disposição quebra automaticamente para novas linhas quando a janela é reduzida.
 
 ## Estado atual
 
-Esta versão entrega a estrutura visual e interações locais de navegação, seleção de cartão, abertura de detalhes e alternância de tema. Os indicadores de instalação são dados demonstrativos: instalação, remoção, atualização, detecção de pacotes e integração com o sistema operacional ainda não estão conectadas.
+Esta versão entrega a estrutura visual e interações locais de navegação, seleção de cartão, abertura de detalhes com metadados e ações demonstrativas, e alternância de tema. Os estados de instalação e os metadados são dados demonstrativos; os botões de abrir, atualizar, remover e instalar ainda não executam comandos reais: instalação, remoção, atualização, detecção de pacotes e integração com o sistema operacional ainda não estão conectadas.

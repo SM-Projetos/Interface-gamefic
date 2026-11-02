@@ -7,6 +7,8 @@
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
+- Expandida a ficha de detalhes com versão, desenvolvedor, origem e estado de atualização.
+- Adicionadas ações contextuais de abrir, atualizar, remover, escolher fonte e instalar, com retorno visual que identifica as integrações ainda pendentes.
 - Redesenhados os 14 ícones vetoriais dos aplicativos com melhor definição de silhueta, volume, contraste e paletas.
 - Ajustados o raio dos cartões e o alinhamento interno entre ícone, nome, descrição e indicador de estado.
 - Adicionada janela modal de detalhes ao selecionar cartões de aplicativos, com ícone, categoria, descrição e estado.
