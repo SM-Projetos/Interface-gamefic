@@ -7,6 +7,7 @@
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
+- Adicionada janela modal de detalhes ao selecionar cartões de aplicativos, com ícone, categoria, descrição e estado.
 - Refinadas as superfícies de fundo e dos cartões com degradês por tema.
 - Ajustados tamanhos tipográficos e estados de hover da navegação e dos controles superiores.
 - Substituídos símbolos de status e setas por SVGs dedicados.

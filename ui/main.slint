@@ -329,7 +329,8 @@ component AppCard inherits Rectangle {
     in property <image> app-icon;
     in property <bool> installed;
     in property <bool> highlighted;
-    callback activated();
+    in property <string> category-name;
+    callback activated(string, string, image, bool, string);
 
     preferred-width: 323px;
     min-width: 260px;
@@ -432,7 +433,15 @@ component AppCard inherits Rectangle {
     }
 
     touch := TouchArea {
-        clicked => { root.activated(); }
+        clicked => {
+            root.activated(
+                root.app-name,
+                root.description,
+                root.app-icon,
+                root.installed,
+                root.category-name
+            );
+        }
     }
 }
 
@@ -440,7 +449,7 @@ component AppCategory inherits VerticalLayout {
     in property <string> category-title;
     in property <[AppInfo]> apps;
     in property <string> selected-app;
-    callback app-selected(string);
+    callback app-selected(string, string, image, bool, string);
 
     spacing: 17px;
 
@@ -470,13 +479,22 @@ component AppCategory inherits VerticalLayout {
             app-icon: app.icon;
             installed: app.installed;
             highlighted: app.name == root.selected-app;
-            activated => { root.app-selected(app.name); }
+            category-name: root.category-title;
+            activated(name, description, icon, installed, category) => {
+                root.app-selected(name, description, icon, installed, category);
+            }
         }
     }
 }
 
 component AppCatalogPage inherits Rectangle {
     in-out property <string> selected-app: "Steam";
+    in-out property <bool> details-open: false;
+    in-out property <string> detail-name: "";
+    in-out property <string> detail-description: "";
+    in-out property <image> detail-icon;
+    in-out property <bool> detail-installed: false;
+    in-out property <string> detail-category: "";
     callback app-selected(string);
 
     background: Theme.page-bg;
@@ -532,7 +550,16 @@ component AppCatalogPage inherits Rectangle {
                     { name: "Minigalaxy", description: "Cliente leve para jogos da GOG.", icon: @image-url("../assets/icons/minigalaxy.svg"), installed: true },
                     { name: "Bottles", description: "Gerencie ambientes para executar apps e jogos.", icon: @image-url("../assets/icons/bottles.svg"), installed: true }
                 ];
-                app-selected(name) => { root.app-selected(name); }
+                app-selected(name, description, icon, installed, category) => {
+                    root.selected-app = name;
+                    root.detail-name = name;
+                    root.detail-description = description;
+                    root.detail-icon = icon;
+                    root.detail-installed = installed;
+                    root.detail-category = category;
+                    root.details-open = true;
+                    root.app-selected(name);
+                }
             }
 
             AppCategory {
@@ -548,7 +575,224 @@ component AppCatalogPage inherits Rectangle {
                     { name: "mGBA", description: "Emulador de Game Boy Advance.", icon: @image-url("../assets/icons/mgba.svg"), installed: true },
                     { name: "MAME", description: "Emulador de máquinas de arcade.", icon: @image-url("../assets/icons/mame.svg"), installed: true }
                 ];
-                app-selected(name) => { root.app-selected(name); }
+                app-selected(name, description, icon, installed, category) => {
+                    root.selected-app = name;
+                    root.detail-name = name;
+                    root.detail-description = description;
+                    root.detail-icon = icon;
+                    root.detail-installed = installed;
+                    root.detail-category = category;
+                    root.details-open = true;
+                    root.app-selected(name);
+                }
+            }
+        }
+    }
+
+    if root.details-open: Rectangle {
+        width: 100%;
+        height: 100%;
+        background: rgba(2, 10, 24, 0.72);
+
+        VerticalLayout {
+            width: 100%;
+            height: 100%;
+            alignment: center;
+
+            Rectangle {
+                width: 640px;
+                height: 438px;
+                border-radius: 24px;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                background: Theme.card-bg;
+                drop-shadow-offset-x: 0px;
+                drop-shadow-offset-y: 14px;
+                drop-shadow-blur: 34px;
+                drop-shadow-color: rgba(0, 0, 0, 0.42);
+
+                VerticalLayout {
+                    padding: 30px;
+                    spacing: 18px;
+
+                    HorizontalLayout {
+                        height: 78px;
+                        spacing: 17px;
+
+                        Image {
+                            source: root.detail-icon;
+                            width: 72px;
+                            height: 72px;
+                            image-fit: contain;
+                            vertical-alignment: center;
+                        }
+
+                        VerticalLayout {
+                            vertical-stretch: 1;
+                            alignment: center;
+                            spacing: 5px;
+
+                            Text {
+                                font-family: "Inter";
+                                text: root.detail-name;
+                                color: Theme.text-main;
+                                font-size: 25px;
+                                font-weight: 750;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                font-family: "Inter";
+                                text: root.detail-category;
+                                color: Theme.text-muted;
+                                font-size: 14px;
+                                font-weight: 600;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        Rectangle {
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 20px;
+                            background: Theme.nav-hover;
+
+                            Text {
+                                font-family: "Inter";
+                                text: "×";
+                                color: Theme.text-main;
+                                font-size: 25px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            TouchArea {
+                                clicked => { root.details-open = false; }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 100%;
+                        height: 1px;
+                        background: Theme.separator;
+                    }
+
+                    Text {
+                        font-family: "Inter";
+                        text: "Sobre o aplicativo";
+                        color: Theme.text-main;
+                        font-size: 18px;
+                        font-weight: 700;
+                    }
+
+                    Text {
+                        font-family: "Inter";
+                        text: root.detail-description;
+                        color: Theme.text-muted;
+                        font-size: 16px;
+                        wrap: word-wrap;
+                        vertical-stretch: 1;
+                    }
+
+                    HorizontalLayout {
+                        height: 86px;
+                        spacing: 14px;
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            height: 86px;
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: Theme.separator;
+                            background: Theme.dark-mode ? #071d35 : #f4f9fd;
+
+                            VerticalLayout {
+                                padding: 14px;
+                                alignment: center;
+                                spacing: 5px;
+
+                                Text {
+                                    font-family: "Inter";
+                                    text: "Estado";
+                                    color: Theme.text-muted;
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
+
+                                Text {
+                                    font-family: "Inter";
+                                    text: root.detail-installed ? "Instalado" : "Não instalado";
+                                    color: Theme.text-main;
+                                    font-size: 16px;
+                                    font-weight: 700;
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            height: 86px;
+                            border-radius: 14px;
+                            border-width: 1px;
+                            border-color: Theme.separator;
+                            background: Theme.dark-mode ? #071d35 : #f4f9fd;
+
+                            VerticalLayout {
+                                padding: 14px;
+                                alignment: center;
+                                spacing: 5px;
+
+                                Text {
+                                    font-family: "Inter";
+                                    text: "Categoria";
+                                    color: Theme.text-muted;
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
+
+                                Text {
+                                    font-family: "Inter";
+                                    text: root.detail-category;
+                                    color: Theme.text-main;
+                                    font-size: 16px;
+                                    font-weight: 700;
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        vertical-stretch: 1;
+                        background: #00000000;
+                    }
+
+                    HorizontalLayout {
+                        height: 42px;
+                        alignment: end;
+
+                        Rectangle {
+                            width: 148px;
+                            height: 42px;
+                            border-radius: 21px;
+                            background: Theme.accent-deep;
+
+                            Text {
+                                font-family: "Inter";
+                                text: "Fechar detalhes";
+                                color: #ffffff;
+                                font-size: 14px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            TouchArea {
+                                clicked => { root.details-open = false; }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
