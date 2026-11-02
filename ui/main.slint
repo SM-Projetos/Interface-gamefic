@@ -1,0 +1,576 @@
+import { ScrollView } from "std-widgets.slint";
+
+global Theme {
+    in-out property <bool> dark-mode: true;
+
+    out property <color> window-bg: dark-mode ? #061a32 : #ffffff;
+    out property <color> sidebar-bg: dark-mode ? #041329 : #fbfcfe;
+    out property <color> topbar-bg: dark-mode ? #061a32 : #ffffff;
+    out property <color> page-bg: dark-mode ? #071d37 : #ffffff;
+    out property <color> card-bg: dark-mode ? #092541 : #eaf5fd;
+    out property <color> card-border: dark-mode ? #1a3e5e : #d5e8f5;
+    out property <color> separator: dark-mode ? #193552 : #e7eef4;
+    out property <color> text-main: dark-mode ? #f4f8ff : #09295d;
+    out property <color> text-muted: dark-mode ? #a8c6da : #35658c;
+    out property <color> accent: dark-mode ? #16d3e8 : #0799df;
+    out property <color> accent-deep: dark-mode ? #087fc7 : #087fd3;
+    out property <color> active-menu: dark-mode ? #0796d4 : #1689e4;
+    out property <color> status-installed: dark-mode ? #079fd0 : #168ee6;
+    out property <color> status-not-installed: dark-mode ? #123b50 : #f8fcff;
+    out property <color> status-not-installed-text: dark-mode ? #d5edf6 : #23638d;
+}
+
+struct AppInfo {
+    name: string,
+    description: string,
+    icon: image,
+    installed: bool,
+}
+
+component NavigationItem inherits Rectangle {
+    in property <string> label;
+    in property <string> glyph;
+    in property <bool> active;
+    in property <length> item-height: 52px;
+    callback selected();
+
+    height: item-height;
+    border-radius: 14px;
+    background: active ? Theme.active-menu : #00000000;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 10px;
+        spacing: 12px;
+        alignment: start;
+        Text {
+            text: root.glyph;
+            width: 24px;
+            color: root.active ? #ffffff : Theme.text-main;
+            font-size: 21px;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.label;
+            color: root.active ? #ffffff : Theme.text-main;
+            font-size: 17px;
+            font-weight: root.active ? 700 : 500;
+            wrap: word-wrap;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+    }
+
+    TouchArea {
+        clicked => { root.selected(); }
+    }
+}
+
+component Sidebar inherits Rectangle {
+    in property <int> active-navigation: 0;
+    callback navigation-selected(int);
+
+    background: Theme.sidebar-bg;
+
+    VerticalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        padding-top: 25px;
+        padding-bottom: 17px;
+        spacing: 22px;
+
+        VerticalLayout {
+            spacing: 8px;
+            alignment: center;
+            Image {
+                source: @image-url("../assets/icons/gamefic.svg");
+                width: 80px;
+                height: 80px;
+                image-fit: contain;
+            }
+            Text {
+                text: "Gamefic";
+                color: Theme.text-main;
+                font-size: 24px;
+                font-weight: 750;
+                horizontal-alignment: center;
+            }
+        }
+
+        VerticalLayout {
+            spacing: 8px;
+
+            NavigationItem {
+                label: "Apps";
+                glyph: "⌂";
+                active: root.active-navigation == 0;
+                selected => { root.navigation-selected(0); }
+            }
+            NavigationItem {
+                label: "Criação de\nConteúdo";
+                glyph: "▣";
+                item-height: 58px;
+                active: root.active-navigation == 1;
+                selected => { root.navigation-selected(1); }
+            }
+            NavigationItem {
+                label: "Monitorado";
+                glyph: "✦";
+                active: root.active-navigation == 2;
+                selected => { root.navigation-selected(2); }
+            }
+            NavigationItem {
+                label: "Kernels e Drivers";
+                glyph: "✧";
+                active: root.active-navigation == 3;
+                selected => { root.navigation-selected(3); }
+            }
+            NavigationItem {
+                label: "Otimização";
+                glyph: "◇";
+                active: root.active-navigation == 4;
+                selected => { root.navigation-selected(4); }
+            }
+            NavigationItem {
+                label: "Overlay";
+                glyph: "▤";
+                active: root.active-navigation == 5;
+                selected => { root.navigation-selected(5); }
+            }
+            NavigationItem {
+                label: "Histórico e\nDiagnósticos";
+                glyph: "◈";
+                item-height: 58px;
+                active: root.active-navigation == 6;
+                selected => { root.navigation-selected(6); }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            background: #00000000;
+        }
+
+        Rectangle {
+            height: 72px;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: Theme.separator;
+            background: Theme.dark-mode ? #071a31 : #ffffff;
+            VerticalLayout {
+                padding-left: 15px;
+                padding-right: 10px;
+                alignment: center;
+                spacing: 3px;
+                Text {
+                    text: "Gamefic";
+                    color: Theme.text-main;
+                    font-size: 15px;
+                    font-weight: 700;
+                }
+                Text {
+                    text: "v0.1.0";
+                    color: Theme.text-muted;
+                    font-size: 13px;
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        height: parent.height;
+        background: Theme.separator;
+    }
+}
+
+component TopBar inherits Rectangle {
+    callback theme-toggle();
+    callback updates-clicked();
+
+    background: Theme.topbar-bg;
+
+    HorizontalLayout {
+        padding-left: 40px;
+        padding-right: 30px;
+        spacing: 14px;
+        alignment: center;
+
+        Text {
+            text: "Gamefic";
+            color: Theme.text-main;
+            font-size: 24px;
+            font-weight: 750;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            background: #00000000;
+        }
+
+        Rectangle {
+            width: 174px;
+            height: 40px;
+            border-radius: 20px;
+            background: Theme.accent-deep;
+            HorizontalLayout {
+                padding-left: 15px;
+                padding-right: 15px;
+                spacing: 8px;
+                alignment: center;
+                Text {
+                    text: "▾";
+                    color: #ffffff;
+                    font-size: 15px;
+                }
+                Text {
+                    text: "Fontes disponíveis";
+                    color: #ffffff;
+                    font-size: 13px;
+                    font-weight: 650;
+                    vertical-alignment: center;
+                }
+            }
+            TouchArea {
+                clicked => { root.updates-clicked(); }
+            }
+        }
+
+        Rectangle {
+            width: 150px;
+            height: 40px;
+            border-radius: 20px;
+            border-width: 1px;
+            border-color: Theme.separator;
+            background: Theme.dark-mode ? #07192e : #ffffff;
+            HorizontalLayout {
+                padding-left: 15px;
+                padding-right: 13px;
+                spacing: 9px;
+                alignment: center;
+                Text {
+                    text: "Atualizações";
+                    color: Theme.text-main;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                Text {
+                    text: "⌄";
+                    color: Theme.text-muted;
+                    font-size: 15px;
+                }
+            }
+            TouchArea {
+                clicked => { root.updates-clicked(); }
+            }
+        }
+
+        Rectangle {
+            width: 42px;
+            height: 42px;
+            border-radius: 21px;
+            background: #00000000;
+            Text {
+                text: "⚙";
+                color: Theme.text-main;
+                font-size: 25px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            TouchArea {
+                clicked => { root.theme-toggle(); }
+            }
+        }
+    }
+
+    Rectangle {
+        y: parent.height - 1px;
+        width: parent.width;
+        height: 1px;
+        background: Theme.separator;
+    }
+}
+
+component AppCard inherits Rectangle {
+    in property <string> app-name;
+    in property <string> description;
+    in property <image> app-icon;
+    in property <bool> installed;
+    in property <bool> highlighted;
+    callback activated();
+
+    preferred-width: 323px;
+    min-width: 260px;
+    max-width: 323px;
+    height: 212px;
+    border-radius: 20px;
+    border-width: highlighted ? 2px : 1px;
+    border-color: highlighted ? Theme.accent : Theme.card-border;
+    background: Theme.card-bg;
+
+    VerticalLayout {
+        padding: 22px;
+        spacing: 10px;
+
+        HorizontalLayout {
+            height: 68px;
+            spacing: 14px;
+            alignment: start;
+
+            Image {
+                source: root.app-icon;
+                width: 64px;
+                height: 64px;
+                image-fit: contain;
+                vertical-alignment: center;
+            }
+
+            Text {
+                text: root.app-name;
+                color: Theme.text-main;
+                font-size: 21px;
+                font-weight: 750;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+        }
+
+        Text {
+            text: root.description;
+            color: Theme.text-muted;
+            font-size: 14px;
+            font-weight: 450;
+            height: 27px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        HorizontalLayout {
+            height: 36px;
+            alignment: end;
+
+            Rectangle {
+                width: root.installed ? 120px : 134px;
+                height: 36px;
+                border-radius: 18px;
+                background: root.installed ? Theme.status-installed : Theme.status-not-installed;
+                border-width: root.installed ? 0px : 1px;
+                border-color: Theme.card-border;
+
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: center;
+                    Text {
+                        text: root.installed ? "●" : "○";
+                        color: root.installed ? #ffffff : Theme.status-not-installed-text;
+                        font-size: 11px;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: root.installed ? "Instalado" : "Não instalado";
+                        color: root.installed ? #ffffff : Theme.status-not-installed-text;
+                        font-size: 12px;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+
+    TouchArea {
+        clicked => { root.activated(); }
+    }
+}
+
+component AppCategory inherits VerticalLayout {
+    in property <string> category-title;
+    in property <[AppInfo]> apps;
+    in property <string> selected-app;
+    callback app-selected(string);
+
+    spacing: 17px;
+
+    Text {
+        text: root.category-title;
+        color: Theme.text-main;
+        font-size: 25px;
+        font-weight: 750;
+        height: 31px;
+        vertical-alignment: center;
+    }
+
+    FlexboxLayout {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        spacing-horizontal: 20px;
+        spacing-vertical: 16px;
+        cross-axis-alignment: stretch;
+
+        for app in root.apps: AppCard {
+            app-name: app.name;
+            description: app.description;
+            app-icon: app.icon;
+            installed: app.installed;
+            highlighted: app.name == root.selected-app;
+            activated => { root.app-selected(app.name); }
+        }
+    }
+}
+
+component AppCatalogPage inherits Rectangle {
+    in-out property <string> selected-app: "Steam";
+    callback app-selected(string);
+
+    background: Theme.page-bg;
+
+    ScrollView {
+        width: 100%;
+        height: 100%;
+        content-width: 100%;
+        content-height: 1420px;
+        vertical-scrollbar-policy: as-needed;
+        horizontal-scrollbar-policy: always-off;
+        mouse-drag-pan-enabled: true;
+
+        VerticalLayout {
+            width: 100%;
+            height: 1420px;
+            padding-left: 40px;
+            padding-right: 56px;
+            padding-top: 36px;
+            padding-bottom: 38px;
+            spacing: 28px;
+
+            VerticalLayout {
+                spacing: 8px;
+                height: 78px;
+                Text {
+                    text: "Apps";
+                    color: Theme.text-main;
+                    font-size: 36px;
+                    font-weight: 800;
+                    height: 43px;
+                }
+                Text {
+                    text: "Descubra, organize e gerencie seus aplicativos para jogos e criação.";
+                    color: Theme.text-muted;
+                    font-size: 16px;
+                    height: 25px;
+                    vertical-alignment: center;
+                }
+            }
+
+            AppCategory {
+                category-title: "Launchers";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "Steam", description: "Loja e plataforma de jogos para PC.", icon: @image-url("../assets/icons/steam.svg"), installed: true },
+                    { name: "Lutris", description: "Gerenciador de jogos e plataformas.", icon: @image-url("../assets/icons/lutris.svg"), installed: true },
+                    { name: "Heroic Games Launcher", description: "Cliente para Epic Games, GOG e Amazon.", icon: @image-url("../assets/icons/heroic.svg"), installed: true },
+                    { name: "itch.io", description: "Cliente para jogos independentes.", icon: @image-url("../assets/icons/itch.svg"), installed: true },
+                    { name: "Minigalaxy", description: "Cliente leve para jogos da GOG.", icon: @image-url("../assets/icons/minigalaxy.svg"), installed: true },
+                    { name: "Bottles", description: "Gerencie ambientes para executar apps e jogos.", icon: @image-url("../assets/icons/bottles.svg"), installed: true }
+                ];
+                app-selected(name) => { root.app-selected(name); }
+            }
+
+            AppCategory {
+                category-title: "Emuladores";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "RetroArch", description: "Interface unificada para emuladores.", icon: @image-url("../assets/icons/retroarch.svg"), installed: true },
+                    { name: "Dolphin", description: "Emulador de GameCube e Wii.", icon: @image-url("../assets/icons/dolphin.svg"), installed: false },
+                    { name: "PCSX2", description: "Emulador de PlayStation 2.", icon: @image-url("../assets/icons/pcsx2.svg"), installed: false },
+                    { name: "RPCS3", description: "Emulador de PlayStation 3.", icon: @image-url("../assets/icons/rpcs3.svg"), installed: true },
+                    { name: "PPSSPP", description: "Emulador de PSP.", icon: @image-url("../assets/icons/ppsspp.svg"), installed: true },
+                    { name: "DuckStation", description: "Emulador de PlayStation 1.", icon: @image-url("../assets/icons/duckstation.svg"), installed: false },
+                    { name: "mGBA", description: "Emulador de Game Boy Advance.", icon: @image-url("../assets/icons/mgba.svg"), installed: true },
+                    { name: "MAME", description: "Emulador de máquinas de arcade.", icon: @image-url("../assets/icons/mame.svg"), installed: true }
+                ];
+                app-selected(name) => { root.app-selected(name); }
+            }
+        }
+    }
+}
+
+component PlaceholderPage inherits Rectangle {
+    in property <string> page-title;
+    background: Theme.page-bg;
+
+    VerticalLayout {
+        padding: 42px;
+        spacing: 12px;
+        Text {
+            text: root.page-title;
+            color: Theme.text-main;
+            font-size: 36px;
+            font-weight: 800;
+        }
+        Text {
+            text: "Esta seção faz parte da estrutura visual do Gamefic. Os recursos e integrações serão implementados em etapas próprias.";
+            color: Theme.text-muted;
+            font-size: 16px;
+            wrap: word-wrap;
+            max-width: 760px;
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "Gamefic";
+    width: 1800px;
+    height: 1050px;
+    min-width: 1120px;
+    min-height: 760px;
+    background: Theme.window-bg;
+
+    in-out property <int> active-navigation: 0;
+    in-out property <string> selected-app: "Steam";
+    property <string> page-title: root.active-navigation == 1 ? "Criação de Conteúdo"
+        : root.active-navigation == 2 ? "Monitorado"
+        : root.active-navigation == 3 ? "Kernels e Drivers"
+        : root.active-navigation == 4 ? "Otimização"
+        : root.active-navigation == 5 ? "Overlay"
+        : "Histórico e Diagnósticos";
+
+    HorizontalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: 0px;
+
+        Sidebar {
+            width: 256px;
+            active-navigation: root.active-navigation;
+            navigation-selected(index) => { root.active-navigation = index; }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 0px;
+
+            TopBar {
+                height: 68px;
+                theme-toggle => { Theme.dark-mode = !Theme.dark-mode; }
+                updates-clicked => { root.active-navigation = 0; }
+            }
+
+            if root.active-navigation == 0: AppCatalogPage {
+                vertical-stretch: 1;
+                selected-app: root.selected-app;
+                app-selected(name) => { root.selected-app = name; }
+            }
+
+            if root.active-navigation != 0: PlaceholderPage {
+                vertical-stretch: 1;
+                page-title: root.page-title;
+            }
+        }
+    }
+}

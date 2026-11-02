@@ -1,0 +1,12 @@
+[package]
+name = "interface-gamefic"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+description = "Interface desktop do Gamefic construída com Rust e Slint"
+
+[dependencies]
+slint = "1.18.1"
+
+[build-dependencies]
+slint-build = "1.18.1"
