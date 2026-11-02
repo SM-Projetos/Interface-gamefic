@@ -6,8 +6,9 @@ global Theme {
     out property <color> window-bg: dark-mode ? #061a32 : #ffffff;
     out property <color> sidebar-bg: dark-mode ? #041329 : #fbfcfe;
     out property <color> topbar-bg: dark-mode ? #061a32 : #ffffff;
-    out property <color> page-bg: dark-mode ? #071d37 : #ffffff;
+    out property <brush> page-bg: dark-mode ? @linear-gradient(15deg, #092c4f 0%, #061a32 58%, #04162b 100%) : #ffffff;
     out property <color> card-bg: dark-mode ? #092541 : #eaf5fd;
+    out property <color> card-bg-highlight: dark-mode ? #0b3153 : #d7edfb;
     out property <color> card-border: dark-mode ? #1a3e5e : #d5e8f5;
     out property <color> separator: dark-mode ? #193552 : #e7eef4;
     out property <color> text-main: dark-mode ? #f4f8ff : #09295d;
@@ -189,6 +190,7 @@ component Sidebar inherits Rectangle {
 
 component TopBar inherits Rectangle {
     callback theme-toggle();
+    callback sources-clicked();
     callback updates-clicked();
 
     background: Theme.topbar-bg;
@@ -236,7 +238,7 @@ component TopBar inherits Rectangle {
                 }
             }
             TouchArea {
-                clicked => { root.updates-clicked(); }
+                clicked => { root.sources-clicked(); }
             }
         }
 
@@ -310,7 +312,13 @@ component AppCard inherits Rectangle {
     border-radius: 20px;
     border-width: highlighted ? 2px : 1px;
     border-color: highlighted ? Theme.accent : Theme.card-border;
-    background: Theme.card-bg;
+    background: root.highlighted ? Theme.card-bg-highlight : Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 7px;
+    drop-shadow-blur: root.highlighted ? 19px : 12px;
+    drop-shadow-color: root.highlighted
+        ? (Theme.dark-mode ? rgba(0, 190, 220, 0.22) : rgba(30, 130, 180, 0.20))
+        : (Theme.dark-mode ? rgba(0, 8, 18, 0.30) : rgba(80, 130, 170, 0.13));
 
     VerticalLayout {
         padding: 22px;
@@ -538,6 +546,8 @@ export component MainWindow inherits Window {
         : root.active-navigation == 3 ? "Kernels e Drivers"
         : root.active-navigation == 4 ? "Otimização"
         : root.active-navigation == 5 ? "Overlay"
+        : root.active-navigation == 7 ? "Atualizações"
+        : root.active-navigation == 8 ? "Fontes de instalação"
         : "Histórico e Diagnósticos";
 
     HorizontalLayout {
@@ -558,7 +568,8 @@ export component MainWindow inherits Window {
             TopBar {
                 height: 68px;
                 theme-toggle => { Theme.dark-mode = !Theme.dark-mode; }
-                updates-clicked => { root.active-navigation = 0; }
+                sources-clicked => { root.active-navigation = 8; }
+                updates-clicked => { root.active-navigation = 7; }
             }
 
             if root.active-navigation == 0: AppCatalogPage {

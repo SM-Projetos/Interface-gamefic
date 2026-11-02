@@ -2,6 +2,10 @@
 
 ## [0.1.0] - 2026-11-02
 
+### Refinamentos visuais
+- Aplicado degradê azul-marinho ao conteúdo, elevação dos cartões e destaque visual para o cartão selecionado.
+- Ações superiores de fontes e atualizações agora abrem suas respectivas telas provisórias.
+
 ### Adicionado
 - Base da aplicação desktop em Rust com Slint 1.18.1.
 - Janela principal com sidebar fixa, navegação e barra superior.
