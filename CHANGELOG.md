@@ -3,7 +3,7 @@
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
-- Aplicado degradê azul-marinho ao conteúdo, elevação dos cartões e destaque visual para o cartão selecionado.
+- Aplicado degradê azul-marinho ao conteúdo, elevação dos cartões e destaque visual para seleção e hover.
 - Ações superiores de fontes e atualizações agora abrem suas respectivas telas provisórias.
 
 ### Adicionado

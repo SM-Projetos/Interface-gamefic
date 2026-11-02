@@ -310,13 +310,13 @@ component AppCard inherits Rectangle {
     max-width: 323px;
     height: 212px;
     border-radius: 20px;
-    border-width: highlighted ? 2px : 1px;
-    border-color: highlighted ? Theme.accent : Theme.card-border;
-    background: root.highlighted ? Theme.card-bg-highlight : Theme.card-bg;
+    border-width: root.highlighted || touch.has-hover ? 2px : 1px;
+    border-color: root.highlighted || touch.has-hover ? Theme.accent : Theme.card-border;
+    background: root.highlighted || touch.has-hover ? Theme.card-bg-highlight : Theme.card-bg;
     drop-shadow-offset-x: 0px;
     drop-shadow-offset-y: 7px;
-    drop-shadow-blur: root.highlighted ? 19px : 12px;
-    drop-shadow-color: root.highlighted
+    drop-shadow-blur: root.highlighted || touch.has-hover ? 19px : 12px;
+    drop-shadow-color: root.highlighted || touch.has-hover
         ? (Theme.dark-mode ? rgba(0, 190, 220, 0.22) : rgba(30, 130, 180, 0.20))
         : (Theme.dark-mode ? rgba(0, 8, 18, 0.30) : rgba(80, 130, 170, 0.13));
 
@@ -391,7 +391,7 @@ component AppCard inherits Rectangle {
         }
     }
 
-    TouchArea {
+    touch := TouchArea {
         clicked => { root.activated(); }
     }
 }
