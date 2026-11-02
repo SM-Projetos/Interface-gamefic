@@ -441,7 +441,6 @@ component AppCatalogPage inherits Rectangle {
     ScrollView {
         width: 100%;
         height: 100%;
-        content-width: 100%;
         content-height: 1420px;
         vertical-scrollbar-policy: as-needed;
         horizontal-scrollbar-policy: always-off;
@@ -535,8 +534,6 @@ export component MainWindow inherits Window {
     title: "Gamefic";
     width: 1800px;
     height: 1050px;
-    min-width: 1120px;
-    min-height: 760px;
     background: Theme.window-bg;
 
     in-out property <int> active-navigation: 0;

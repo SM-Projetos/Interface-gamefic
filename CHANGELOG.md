@@ -1,5 +1,9 @@
 # Changelog
 
+## Correção de compilação - 2026-11-02
+- Removida largura percentual inválida da propriedade `content-width` do ScrollView.
+- Removidos `min-width` e `min-height` conflitantes com as dimensões iniciais da janela.
+
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
