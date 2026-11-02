@@ -4,11 +4,20 @@ global Theme {
     in-out property <bool> dark-mode: true;
 
     out property <color> window-bg: dark-mode ? #061a32 : #ffffff;
-    out property <color> sidebar-bg: dark-mode ? #041329 : #fbfcfe;
+    out property <brush> sidebar-bg: dark-mode
+        ? @linear-gradient(180deg, #061a32 0%, #041329 100%)
+        : @linear-gradient(180deg, #ffffff 0%, #f7fafe 100%);
     out property <color> topbar-bg: dark-mode ? #061a32 : #ffffff;
-    out property <brush> page-bg: dark-mode ? @linear-gradient(15deg, #092c4f 0%, #061a32 58%, #04162b 100%) : #ffffff;
-    out property <color> card-bg: dark-mode ? #092541 : #eaf5fd;
-    out property <color> card-bg-highlight: dark-mode ? #0b3153 : #d7edfb;
+    out property <brush> page-bg: dark-mode
+        ? @linear-gradient(18deg, #092d50 0%, #071d37 52%, #04162b 100%)
+        : @linear-gradient(145deg, #ffffff 0%, #fbfdff 58%, #f3f9fe 100%);
+    out property <brush> card-bg: dark-mode
+        ? @linear-gradient(145deg, #0c2b49 0%, #08223e 58%, #071d36 100%)
+        : @linear-gradient(145deg, #f3faff 0%, #e7f3fc 58%, #e2f0fb 100%);
+    out property <brush> card-bg-highlight: dark-mode
+        ? @linear-gradient(145deg, #124064 0%, #0b3153 58%, #082642 100%)
+        : @linear-gradient(145deg, #e3f5ff 0%, #d7edfb 58%, #cce8f9 100%);
+    out property <color> nav-hover: dark-mode ? #102e49 : #edf6fc;
     out property <color> card-border: dark-mode ? #1a3e5e : #d5e8f5;
     out property <color> separator: dark-mode ? #193552 : #e7eef4;
     out property <color> text-main: dark-mode ? #f4f8ff : #09295d;
@@ -37,7 +46,7 @@ component NavigationItem inherits Rectangle {
 
     height: item-height;
     border-radius: 14px;
-    background: active ? Theme.active-menu : #00000000;
+    background: root.active ? Theme.active-menu : touch.has-hover ? Theme.nav-hover : #00000000;
 
     HorizontalLayout {
         padding-left: 12px;
@@ -53,17 +62,19 @@ component NavigationItem inherits Rectangle {
             vertical-alignment: center;
         }
         Text {
+
+            font-family: "Inter";
             text: root.label;
             color: root.active ? #ffffff : Theme.text-main;
-            font-size: 17px;
-            font-weight: root.active ? 700 : 500;
+            font-size: 18px;
+            font-weight: root.active ? 700 : 550;
             wrap: word-wrap;
             vertical-alignment: center;
             horizontal-stretch: 1;
         }
     }
 
-    TouchArea {
+    touch := TouchArea {
         clicked => { root.selected(); }
     }
 }
@@ -91,6 +102,8 @@ component Sidebar inherits Rectangle {
                 image-fit: contain;
             }
             Text {
+
+                font-family: "Inter";
                 text: "Gamefic";
                 color: Theme.text-main;
                 font-size: 24px;
@@ -165,12 +178,16 @@ component Sidebar inherits Rectangle {
                 alignment: center;
                 spacing: 3px;
                 Text {
+
+                    font-family: "Inter";
                     text: "Gamefic";
                     color: Theme.text-main;
                     font-size: 15px;
                     font-weight: 700;
                 }
                 Text {
+
+                    font-family: "Inter";
                     text: "v0.1.0";
                     color: Theme.text-muted;
                     font-size: 13px;
@@ -201,6 +218,9 @@ component TopBar inherits Rectangle {
         alignment: center;
 
         Text {
+
+
+            font-family: "Inter";
             text: "Gamefic";
             color: Theme.text-main;
             font-size: 24px;
@@ -217,18 +237,21 @@ component TopBar inherits Rectangle {
             width: 174px;
             height: 40px;
             border-radius: 20px;
-            background: Theme.accent-deep;
+            background: sources-touch.has-hover ? Theme.accent : Theme.accent-deep;
             HorizontalLayout {
                 padding-left: 15px;
                 padding-right: 15px;
                 spacing: 8px;
                 alignment: center;
-                Text {
-                    text: "▾";
-                    color: #ffffff;
-                    font-size: 15px;
+                Image {
+                    source: @image-url("../assets/icons/chevron-down.svg");
+                    width: 14px;
+                    height: 14px;
+                    image-fit: contain;
                 }
                 Text {
+
+                    font-family: "Inter";
                     text: "Fontes disponíveis";
                     color: #ffffff;
                     font-size: 13px;
@@ -236,7 +259,7 @@ component TopBar inherits Rectangle {
                     vertical-alignment: center;
                 }
             }
-            TouchArea {
+            sources-touch := TouchArea {
                 clicked => { root.sources-clicked(); }
             }
         }
@@ -247,25 +270,29 @@ component TopBar inherits Rectangle {
             border-radius: 20px;
             border-width: 1px;
             border-color: Theme.separator;
-            background: Theme.dark-mode ? #07192e : #ffffff;
+            background: updates-touch.has-hover ? Theme.nav-hover : (Theme.dark-mode ? #07192e : #ffffff);
             HorizontalLayout {
                 padding-left: 15px;
                 padding-right: 13px;
                 spacing: 9px;
                 alignment: center;
                 Text {
+
+                    font-family: "Inter";
                     text: "Atualizações";
                     color: Theme.text-main;
                     font-size: 14px;
                     font-weight: 600;
                 }
-                Text {
-                    text: "⌄";
-                    color: Theme.text-muted;
-                    font-size: 15px;
+                Image {
+                    source: @image-url("../assets/icons/chevron-down.svg");
+                    width: 13px;
+                    height: 13px;
+                    image-fit: contain;
+                    colorize: Theme.text-muted;
                 }
             }
-            TouchArea {
+            updates-touch := TouchArea {
                 clicked => { root.updates-clicked(); }
             }
         }
@@ -274,7 +301,7 @@ component TopBar inherits Rectangle {
             width: 42px;
             height: 42px;
             border-radius: 21px;
-            background: #00000000;
+            background: settings-touch.has-hover ? Theme.nav-hover : #00000000;
             Image {
                 source: @image-url("../assets/icons/settings.svg");
                 width: 25px;
@@ -282,7 +309,7 @@ component TopBar inherits Rectangle {
                 image-fit: contain;
                 colorize: Theme.text-main;
             }
-            TouchArea {
+            settings-touch := TouchArea {
                 clicked => { root.theme-toggle(); }
             }
         }
@@ -337,9 +364,12 @@ component AppCard inherits Rectangle {
             }
 
             Text {
+
+
+                font-family: "Inter";
                 text: root.app-name;
                 color: Theme.text-main;
-                font-size: 21px;
+                font-size: 22px;
                 font-weight: 750;
                 wrap: word-wrap;
                 vertical-alignment: center;
@@ -348,9 +378,12 @@ component AppCard inherits Rectangle {
         }
 
         Text {
+
+
+            font-family: "Inter";
             text: root.description;
             color: Theme.text-muted;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 450;
             height: 27px;
             vertical-alignment: center;
@@ -362,7 +395,7 @@ component AppCard inherits Rectangle {
             alignment: end;
 
             Rectangle {
-                width: root.installed ? 120px : 134px;
+                width: root.installed ? 124px : 138px;
                 height: 36px;
                 border-radius: 18px;
                 background: root.installed ? Theme.status-installed : Theme.status-not-installed;
@@ -370,18 +403,26 @@ component AppCard inherits Rectangle {
                 border-color: Theme.card-border;
 
                 HorizontalLayout {
+                    padding-left: 9px;
+                    padding-right: 9px;
                     spacing: 6px;
                     alignment: center;
-                    Text {
-                        text: root.installed ? "●" : "○";
-                        color: root.installed ? #ffffff : Theme.status-not-installed-text;
-                        font-size: 11px;
+                    Image {
+                        source: root.installed
+                            ? @image-url("../assets/icons/status-installed.svg")
+                            : @image-url("../assets/icons/status-available.svg");
+                        width: 14px;
+                        height: 14px;
+                        image-fit: contain;
+                        colorize: root.installed ? #ffffff : Theme.status-not-installed-text;
                         vertical-alignment: center;
                     }
                     Text {
+
+                        font-family: "Inter";
                         text: root.installed ? "Instalado" : "Não instalado";
                         color: root.installed ? #ffffff : Theme.status-not-installed-text;
-                        font-size: 12px;
+                        font-size: 13px;
                         font-weight: 700;
                         vertical-alignment: center;
                     }
@@ -404,9 +445,12 @@ component AppCategory inherits VerticalLayout {
     spacing: 17px;
 
     Text {
+
+
+        font-family: "Inter";
         text: root.category-title;
         color: Theme.text-main;
-        font-size: 25px;
+        font-size: 26px;
         font-weight: 750;
         height: 31px;
         vertical-alignment: center;
@@ -440,14 +484,14 @@ component AppCatalogPage inherits Rectangle {
     ScrollView {
         width: 100%;
         height: 100%;
-        content-height: 1420px;
+        content-height: 1200px;
         vertical-scrollbar-policy: as-needed;
         horizontal-scrollbar-policy: always-off;
         mouse-drag-pan-enabled: true;
 
         VerticalLayout {
             width: 100%;
-            height: 1420px;
+            height: 1200px;
             padding-left: 40px;
             padding-right: 56px;
             padding-top: 36px;
@@ -458,6 +502,8 @@ component AppCatalogPage inherits Rectangle {
                 spacing: 8px;
                 height: 78px;
                 Text {
+
+                    font-family: "Inter";
                     text: "Apps";
                     color: Theme.text-main;
                     font-size: 36px;
@@ -465,6 +511,8 @@ component AppCatalogPage inherits Rectangle {
                     height: 43px;
                 }
                 Text {
+
+                    font-family: "Inter";
                     text: "Descubra, organize e gerencie seus aplicativos para jogos e criação.";
                     color: Theme.text-muted;
                     font-size: 16px;
@@ -514,12 +562,16 @@ component PlaceholderPage inherits Rectangle {
         padding: 42px;
         spacing: 12px;
         Text {
+
+            font-family: "Inter";
             text: root.page-title;
             color: Theme.text-main;
             font-size: 36px;
             font-weight: 800;
         }
         Text {
+
+            font-family: "Inter";
             text: "Esta seção faz parte da estrutura visual do Gamefic. Os recursos e integrações serão implementados em etapas próprias.";
             color: Theme.text-muted;
             font-size: 16px;

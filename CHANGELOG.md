@@ -7,6 +7,10 @@
 ## [0.1.0] - 2026-11-02
 
 ### Refinamentos visuais
+- Refinadas as superfícies de fundo e dos cartões com degradês por tema.
+- Ajustados tamanhos tipográficos e estados de hover da navegação e dos controles superiores.
+- Substituídos símbolos de status e setas por SVGs dedicados.
+- Reduzida a altura de conteúdo excedente da rolagem para acompanhar o conteúdo real do catálogo.
 - Substituídos os glifos provisórios do menu lateral e do botão de configurações por ícones SVG monocromáticos colorizados pelo tema.
 - Ajustada a dimensão inicial da janela para 2048 px de largura, permitindo cinco cartões por linha na resolução de referência.
 - Aplicado degradê azul-marinho ao conteúdo, elevação dos cartões e destaque visual para seleção e hover.
