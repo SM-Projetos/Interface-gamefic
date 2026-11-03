@@ -38,25 +38,45 @@ global Theme {
     out property <color> status-not-installed-text: dark-mode ? #d5edf6 : #23638d;
 }
 
+// Card do catálogo, vindo do backend Rust (system/): id do REGISTRY resolve
+// o ícone embutido (AppIcon) e `estado` carrega o estado real detectado —
+// "instalado" | "nao_instalado" | "desconhecido" (nunca inventado).
 struct AppInfo {
+    id: string,
     name: string,
     description: string,
-    icon: image,
-    installed: bool,
+    estado: string,
     version: string,
     developer: string,
     source: string,
     has_update: bool,
 }
 
+// Dados do catálogo fornecidos pelo backend (detecção em thread de fundo,
+// aplicada pela event loop do Slint). Enquanto `loaded` é falso, as páginas
+// mostram o estado de carregamento; nenhum card exibe estado inventado.
+export global CatalogData {
+    in-out property <[AppInfo]> launchers: [];
+    in-out property <[AppInfo]> emuladores: [];
+    in-out property <[AppInfo]> tools: [];
+    in-out property <[AppInfo]> compatibilidade: [];
+    in-out property <[AppInfo]> criacao-gravacao: [];
+    in-out property <[AppInfo]> criacao-video: [];
+    in-out property <[AppInfo]> criacao-audio: [];
+    in-out property <[AppInfo]> criacao-social: [];
+    in-out property <bool> loaded: false;
+    in-out property <string> status;
+    in-out property <string> distro-name;
+}
+
 // Estado compartilhado da janela de detalhes do catálogo: vive em escopo global
 // para que o modal seja renderizado na MainWindow, centrado sobre a janela toda.
 global CatalogModal {
     in-out property <bool> open: false;
+    in-out property <string> app-id;
     in-out property <string> name;
     in-out property <string> description;
-    in-out property <image> icon;
-    in-out property <bool> installed;
+    in-out property <string> estado;
     in-out property <string> category;
     in-out property <string> version;
     in-out property <string> developer;
@@ -65,27 +85,17 @@ global CatalogModal {
     in-out property <string> action-message: "Ações demonstrativas: o backend ainda não está conectado.";
 
     // Abre a janela de detalhes com o contexto do cartão selecionado.
-    public function open-details(
-        app-name: string,
-        app-description: string,
-        app-icon: image,
-        app-installed: bool,
-        app-category: string,
-        app-version: string,
-        app-developer: string,
-        app-source: string,
-        app-has-update: bool,
-    ) {
-        self.name = app-name;
-        self.description = app-description;
-        self.icon = app-icon;
-        self.installed = app-installed;
+    public function open-from-app(app: AppInfo, app-category: string) {
+        self.app-id = app.id;
+        self.name = app.name;
+        self.description = app.description;
+        self.estado = app.estado;
         self.category = app-category;
-        self.version = app-version;
-        self.developer = app-developer;
-        self.source = app-source;
-        self.has-update = app-has-update;
-        self.action-message = "Ações demonstrativas: nenhum comando do sistema é executado.";
+        self.version = app.version;
+        self.developer = app.developer;
+        self.source = app.source;
+        self.has-update = app.has_update;
+        self.action-message = "Estados vêm da detecção do sistema em tempo real. Ações de abrir/instalar/remover chegam com o próximo passo do backend.";
         self.open = true;
     }
 }
@@ -361,18 +371,220 @@ component Sidebar inherits Rectangle {
     }
 }
 
+// Ícone do aplicativo resolvido pelo app-id do catálogo (portado do
+// app-icon.slint do repo Gamefic): os assets ficam embutidos no binário
+// via @image-url, e o id sem imagem empacotada mostra iniciais em vez de
+// um ícone inventado.
+component AppIcon inherits Rectangle {
+    in property <string> app-id;
+    width: 68px;
+    height: 68px;
+    background: #00000000;
+
+    if root.app-id == "steam": Image {
+        source: @image-url("../assets/apps/steam.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "lutris": Image {
+        source: @image-url("../assets/apps/lutris.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "heroic": Image {
+        source: @image-url("../assets/apps/heroic.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "bottles": Image {
+        source: @image-url("../assets/apps/bottles.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "itch": Image {
+        source: @image-url("../assets/apps/itch.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "minigalaxy": Image {
+        source: @image-url("../assets/apps/minigalaxy.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "retroarch": Image {
+        source: @image-url("../assets/apps/retroarch.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "dolphin": Image {
+        source: @image-url("../assets/apps/dolphin.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "pcsx2": Image {
+        source: @image-url("../assets/apps/pcsx2.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "rpcs3": Image {
+        source: @image-url("../assets/apps/rpcs3.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "ppsspp": Image {
+        source: @image-url("../assets/apps/ppsspp.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "duck": Image {
+        source: @image-url("../assets/apps/duck.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "mgba": Image {
+        source: @image-url("../assets/apps/mgba.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "mame": Image {
+        source: @image-url("../assets/apps/mame.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "gamemode": Image {
+        source: @image-url("../assets/apps/gamemode.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "mangohud": Image {
+        source: @image-url("../assets/apps/mangohud.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "gamescope": Image {
+        source: @image-url("../assets/apps/gamescope.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "lact": Image {
+        source: @image-url("../assets/apps/lact.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "goverlay": Image {
+        source: @image-url("../assets/apps/goverlay.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "openrgb": Image {
+        source: @image-url("../assets/apps/openrgb.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "oversteer": Image {
+        source: @image-url("../assets/apps/oversteer.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "winetricks": Image {
+        source: @image-url("../assets/apps/winetricks.svg");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    // protontricks não tem imagem empacotada no catálogo de ícones: iniciais
+    // em vez de ícone inventado.
+    if root.app-id == "protontricks": Rectangle {
+        width: 100%;
+        height: 100%;
+        border-radius: 14px;
+        background: Theme.nav-hover;
+
+        Text {
+            font-family: "Inter";
+            text: "PT";
+            color: Theme.text-muted;
+            font-size: 22px;
+            font-weight: 750;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    if root.app-id == "obs": Image {
+        source: @image-url("../assets/apps/obs.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "gpu-screen-recorder": Image {
+        source: @image-url("../assets/apps/gpu-screen-recorder.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "kdenlive": Image {
+        source: @image-url("../assets/apps/kdenlive.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "losslesscut": Image {
+        source: @image-url("../assets/apps/losslesscut.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "audacity": Image {
+        source: @image-url("../assets/apps/audacity.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "easyeffects": Image {
+        source: @image-url("../assets/apps/easyeffects.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "discord": Image {
+        source: @image-url("../assets/apps/discord.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+    if root.app-id == "teamspeak": Image {
+        source: @image-url("../assets/apps/teamspeak.png");
+        width: 100%;
+        height: 100%;
+        image-fit: contain;
+    }
+}
+
 component AppCard inherits Rectangle {
-    in property <string> app-name;
-    in property <string> description;
-    in property <image> app-icon;
-    in property <bool> installed;
+    in property <AppInfo> app;
     in property <bool> highlighted;
-    in property <string> category-name;
-    in property <string> version;
-    in property <string> developer;
-    in property <string> source;
-    in property <bool> has-update;
-    callback activated(string, string, image, bool, string, string, string, string, bool);
+    callback activated(AppInfo);
 
     preferred-width: 323px;
     min-width: 260px;
@@ -398,19 +610,14 @@ component AppCard inherits Rectangle {
             spacing: 14px;
             alignment: start;
 
-            Image {
-                source: root.app-icon;
-                width: 68px;
-                height: 68px;
-                image-fit: contain;
-                vertical-alignment: center;
+            AppIcon {
+                app-id: root.app.id;
             }
 
             Text {
 
-
                 font-family: "Inter";
-                text: root.app-name;
+                text: root.app.name;
                 color: Theme.text-main;
                 font-size: 22px;
                 font-weight: 750;
@@ -422,9 +629,8 @@ component AppCard inherits Rectangle {
 
         Text {
 
-
             font-family: "Inter";
-            text: root.description;
+            text: root.app.description;
             color: Theme.text-muted;
             font-size: 15px;
             font-weight: 450;
@@ -438,11 +644,13 @@ component AppCard inherits Rectangle {
             alignment: end;
 
             Rectangle {
-                width: root.installed ? 124px : 138px;
+                width: root.app.estado == "instalado" ? 124px : 138px;
                 height: 36px;
                 border-radius: 18px;
-                background: root.installed ? Theme.status-installed : Theme.status-not-installed;
-                border-width: root.installed ? 0px : 1px;
+                background: root.app.estado == "instalado"
+                    ? Theme.status-installed
+                    : root.app.estado == "nao_instalado" ? Theme.status-not-installed : Theme.nav-hover;
+                border-width: root.app.estado == "instalado" ? 0px : 1px;
                 border-color: Theme.card-border;
 
                 HorizontalLayout {
@@ -450,21 +658,26 @@ component AppCard inherits Rectangle {
                     padding-right: 9px;
                     spacing: 6px;
                     alignment: center;
-                    Image {
-                        source: root.installed
+
+                    if root.app.estado != "desconhecido": Image {
+                        source: root.app.estado == "instalado"
                             ? @image-url("../assets/icons/status-installed.svg")
                             : @image-url("../assets/icons/status-available.svg");
                         width: 14px;
                         height: 14px;
                         image-fit: contain;
-                        colorize: root.installed ? #ffffff : Theme.status-not-installed-text;
+                        colorize: root.app.estado == "instalado" ? #ffffff : Theme.status-not-installed-text;
                         vertical-alignment: center;
                     }
                     Text {
 
                         font-family: "Inter";
-                        text: root.installed ? "Instalado" : "Não instalado";
-                        color: root.installed ? #ffffff : Theme.status-not-installed-text;
+                        text: root.app.estado == "instalado"
+                            ? "Instalado"
+                            : root.app.estado == "nao_instalado" ? "Não instalado" : "Desconhecido";
+                        color: root.app.estado == "instalado"
+                            ? #ffffff
+                            : root.app.estado == "desconhecido" ? Theme.text-muted : Theme.status-not-installed-text;
                         font-size: 13px;
                         font-weight: 700;
                         vertical-alignment: center;
@@ -476,17 +689,7 @@ component AppCard inherits Rectangle {
 
     touch := TouchArea {
         clicked => {
-            root.activated(
-                root.app-name,
-                root.description,
-                root.app-icon,
-                root.installed,
-                root.category-name,
-                root.version,
-                root.developer,
-                root.source,
-                root.has-update
-            );
+            root.activated(root.app);
         }
     }
 }
@@ -495,12 +698,11 @@ component AppCategory inherits VerticalLayout {
     in property <string> category-title;
     in property <[AppInfo]> apps;
     in property <string> selected-app;
-    callback app-selected(string, string, image, bool, string, string, string, string, bool);
+    callback app-selected(AppInfo);
 
     spacing: 17px;
 
     Text {
-
 
         font-family: "Inter";
         text: root.category-title;
@@ -520,18 +722,27 @@ component AppCategory inherits VerticalLayout {
         cross-axis-alignment: stretch;
 
         for app in root.apps: AppCard {
-            app-name: app.name;
-            description: app.description;
-            app-icon: app.icon;
-            installed: app.installed;
+            app: app;
             highlighted: app.name == root.selected-app;
-            category-name: root.category-title;
-            version: app.version;
-            developer: app.developer;
-            source: app.source;
-            has-update: app.has_update;
-            activated(name, description, icon, installed, category, version, developer, source, has-update) => {
-                root.app-selected(name, description, icon, installed, category, version, developer, source, has-update);
+            activated(e) => {
+                CatalogModal.open-from-app(e, root.category-title);
+                root.app-selected(e);
+            }
+        }
+
+        // Estado de carregamento/vazio honesto: enquanto a detecção não
+        // terminou, nada é mostrado como instalado ou instalável.
+        if root.apps.length == 0: Rectangle {
+            height: 120px;
+            background: transparent;
+
+            Text {
+                font-family: "Inter";
+                text: CatalogData.loaded ? "Nenhum aplicativo nesta categoria." : "Consultando o catálogo do sistema…";
+                color: Theme.text-muted;
+                font-size: 15px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
             }
         }
     }
@@ -638,12 +849,10 @@ component DetailsDialog inherits Rectangle {
                     height: 86px;
                     spacing: 17px;
 
-                    Image {
-                        source: CatalogModal.icon;
+                    AppIcon {
+                        app-id: CatalogModal.app-id;
                         width: 76px;
                         height: 76px;
-                        image-fit: contain;
-                        vertical-alignment: center;
                     }
 
                     VerticalLayout {
@@ -674,14 +883,20 @@ component DetailsDialog inherits Rectangle {
                         width: 128px;
                         height: 34px;
                         border-radius: 17px;
-                        background: CatalogModal.installed ? Theme.status-installed : Theme.status-not-installed;
-                        border-width: CatalogModal.installed ? 0px : 1px;
+                        background: CatalogModal.estado == "instalado"
+                            ? Theme.status-installed
+                            : CatalogModal.estado == "nao_instalado" ? Theme.status-not-installed : Theme.nav-hover;
+                        border-width: CatalogModal.estado == "instalado" ? 0px : 1px;
                         border-color: Theme.card-border;
 
                         Text {
                             font-family: "Inter";
-                            text: CatalogModal.installed ? "Instalado" : "Não instalado";
-                            color: CatalogModal.installed ? #ffffff : Theme.status-not-installed-text;
+                            text: CatalogModal.estado == "instalado"
+                                ? "Instalado"
+                                : CatalogModal.estado == "nao_instalado" ? "Não instalado" : "Desconhecido";
+                            color: CatalogModal.estado == "instalado"
+                                ? #ffffff
+                                : CatalogModal.estado == "desconhecido" ? Theme.text-muted : Theme.status-not-installed-text;
                             font-size: 13px;
                             font-weight: 700;
                             horizontal-alignment: center;
@@ -779,7 +994,7 @@ component DetailsDialog inherits Rectangle {
                         height: 44px;
                         spacing: 10px;
 
-                        if CatalogModal.installed: ModalAction {
+                        if CatalogModal.estado == "instalado": ModalAction {
                             width: 132px;
                             label: "Abrir";
                             variant: "primary";
@@ -788,7 +1003,7 @@ component DetailsDialog inherits Rectangle {
                             }
                         }
 
-                        if CatalogModal.installed && CatalogModal.has-update: ModalAction {
+                        if CatalogModal.estado == "instalado" && CatalogModal.has-update: ModalAction {
                             width: 138px;
                             label: "Atualizar";
                             variant: "secondary";
@@ -797,7 +1012,7 @@ component DetailsDialog inherits Rectangle {
                             }
                         }
 
-                        if CatalogModal.installed: ModalAction {
+                        if CatalogModal.estado == "instalado": ModalAction {
                             width: 132px;
                             label: "Remover";
                             variant: "danger";
@@ -806,16 +1021,16 @@ component DetailsDialog inherits Rectangle {
                             }
                         }
 
-                        if !CatalogModal.installed: ModalAction {
+                        if CatalogModal.estado == "nao_instalado": ModalAction {
                             width: 160px;
                             label: "Escolher fonte";
                             variant: "secondary";
                             clicked => {
-                                CatalogModal.action-message = "As fontes disponíveis serão listadas quando a detecção do sistema for integrada.";
+                                CatalogModal.action-message = "As fontes disponíveis serão listadas quando a consulta de fontes for integrada.";
                             }
                         }
 
-                        if !CatalogModal.installed: ModalAction {
+                        if CatalogModal.estado == "nao_instalado": ModalAction {
                             width: 132px;
                             label: "Instalar";
                             variant: "primary";
@@ -823,6 +1038,9 @@ component DetailsDialog inherits Rectangle {
                                 CatalogModal.action-message = "Instalar: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
                             }
                         }
+
+                        // Sem confirmação de instalação (desconhecido), nenhuma
+                        // ação é ofertada — sem comando nem promessa de estado.
 
                         Rectangle {
                             horizontal-stretch: 1;
@@ -874,8 +1092,8 @@ component DetailsDialog inherits Rectangle {
 }
 
 component AppCatalogPage inherits Rectangle {
-    in-out property <string> selected-app: "Steam";
-    callback app-selected(string);
+    in-out property <string> selected-app: "";
+    callback app-selected(AppInfo);
 
     background: Theme.page-bg;
 
@@ -917,72 +1135,41 @@ component AppCatalogPage inherits Rectangle {
                     height: 25px;
                     vertical-alignment: center;
                 }
+                Text {
+
+                    font-family: "Inter";
+                    text: CatalogData.loaded ? CatalogData.status : "Consultando o catálogo do sistema…";
+                    color: Theme.text-muted;
+                    font-size: 13px;
+                }
             }
 
             AppCategory {
                 category-title: "Launchers";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "Steam", description: "Loja e cliente de jogos da Valve", icon: @image-url("../assets/apps/steam.png"), version: "Não detectada", developer: "Valve Corporation", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Lutris", description: "Gerenciador de jogos Wine/Proton", icon: @image-url("../assets/apps/lutris.svg"), version: "Não detectada", developer: "Comunidade Lutris", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Heroic Games Launcher", description: "Launcher da Epic, GOG e Amazon", icon: @image-url("../assets/apps/heroic.png"), version: "Não detectada", developer: "Heroic Games Launcher (comunidade)", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Bottles", description: "Gerenciador moderno de prefixos Wine", icon: @image-url("../assets/apps/bottles.svg"), version: "Não detectada", developer: "Bottles Developers", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Itch", description: "Loja indie da itch.io", icon: @image-url("../assets/apps/itch.png"), version: "Não detectada", developer: "itch.io (Leaf Corcoran)", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Minigalaxy", description: "Cliente GOG simples", icon: @image-url("../assets/apps/minigalaxy.png"), version: "Não detectada", developer: "Comunidade Minigalaxy", source: "Não consultada", has_update: false, installed: true }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.launchers;
+                app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Emuladores";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "RetroArch", description: "Frontend de emuladores (Libretro)", icon: @image-url("../assets/apps/retroarch.svg"), version: "Não detectada", developer: "Libretro", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Dolphin", description: "GameCube e Wii", icon: @image-url("../assets/apps/dolphin.svg"), version: "Não detectada", developer: "Dolphin Emulator Team", source: "Não consultada", has_update: false, installed: false },
-                    { name: "PCSX2", description: "PlayStation 2", icon: @image-url("../assets/apps/pcsx2.png"), version: "Não detectada", developer: "PCSX2 Development Team", source: "Não consultada", has_update: false, installed: false },
-                    { name: "RPCS3", description: "PlayStation 3", icon: @image-url("../assets/apps/rpcs3.png"), version: "Não detectada", developer: "RPCS3 Team", source: "Não consultada", has_update: false, installed: true },
-                    { name: "PPSSPP", description: "PlayStation Portable (PSP)", icon: @image-url("../assets/apps/ppsspp.png"), version: "Não detectada", developer: "Henrik Rydgård", source: "Não consultada", has_update: false, installed: true },
-                    { name: "DuckStation", description: "PlayStation 1", icon: @image-url("../assets/apps/duck.png"), version: "Não detectada", developer: "Stenzek", source: "Não consultada", has_update: false, installed: false },
-                    { name: "mGBA", description: "Game Boy Advance", icon: @image-url("../assets/apps/mgba.png"), version: "Não detectada", developer: "Jeffrey Pfau", source: "Não consultada", has_update: false, installed: true },
-                    { name: "MAME", description: "Jogos de arcade (multi-sistemas)", icon: @image-url("../assets/apps/mame.svg"), version: "Não detectada", developer: "MAMEdev", source: "Não consultada", has_update: false, installed: true }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.emuladores;
+                app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Ferramentas de jogos";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "GameMode", description: "Daemon de otimização para jogos", icon: @image-url("../assets/apps/gamemode.png"), version: "Não detectada", developer: "Feral Interactive", source: "Não consultada", has_update: false, installed: true },
-                    { name: "MangoHud", description: "Overlay de desempenho em jogos", icon: @image-url("../assets/apps/mangohud.svg"), version: "Não detectada", developer: "Comunidade MangoHud", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Gamescope", description: "Compositor de sessão de jogos", icon: @image-url("../assets/apps/gamescope.png"), version: "Não detectada", developer: "Valve Corporation", source: "Não consultada", has_update: false, installed: false },
-                    { name: "LACT", description: "Controle de GPU e ventoinhas", icon: @image-url("../assets/apps/lact.png"), version: "Não detectada", developer: "Ilya Zlobintsev", source: "Não consultada", has_update: false, installed: true },
-                    { name: "GOverlay", description: "Configurador gráfico do MangoHud", icon: @image-url("../assets/apps/goverlay.svg"), version: "Não detectada", developer: "Benjami Gois / comunidade", source: "Não consultada", has_update: false, installed: false },
-                    { name: "OpenRGB", description: "Controle de iluminação RGB", icon: @image-url("../assets/apps/openrgb.png"), version: "Não detectada", developer: "Comunidade OpenRGB", source: "Não consultada", has_update: false, installed: false },
-                    { name: "Oversteer", description: "Gerente de volantes de corrida", icon: @image-url("../assets/apps/oversteer.png"), version: "Não detectada", developer: "Bernat Arlandis", source: "Não consultada", has_update: false, installed: false }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.tools;
+                app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Compatibilidade";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "Wine", description: "Camada de compatibilidade Windows", icon: @image-url("../assets/apps/wine.svg"), version: "Não detectada", developer: "WineHQ", source: "Não consultada", has_update: false, installed: true }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.compatibilidade;
+                app-selected(app) => { root.app-selected(app); }
             }
         }
     }
@@ -991,8 +1178,8 @@ component AppCatalogPage inherits Rectangle {
 // Aba Criação de Conteúdo: catálogo de ferramentas de gravação, edição,
 // áudio e comunicação — reutiliza AppCategory/AppCard e o modal global.
 component ContentPage inherits Rectangle {
-    in-out property <string> selected-app: "OBS Studio";
-    callback app-selected(string);
+    in-out property <string> selected-app: "";
+    callback app-selected(AppInfo);
 
     background: Theme.page-bg;
 
@@ -1034,58 +1221,41 @@ component ContentPage inherits Rectangle {
                     height: 25px;
                     vertical-alignment: center;
                 }
+                Text {
+
+                    font-family: "Inter";
+                    text: CatalogData.loaded ? CatalogData.status : "Consultando o catálogo do sistema…";
+                    color: Theme.text-muted;
+                    font-size: 13px;
+                }
             }
 
             AppCategory {
                 category-title: "Gravação e Stream";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "OBS Studio", description: "Gravação e streaming", icon: @image-url("../assets/apps/obs.png"), version: "Não detectada", developer: "OBS Project", source: "Não consultada", has_update: false, installed: true },
-                    { name: "GPU Screen Recorder", description: "Gravação de gameplay", icon: @image-url("../assets/apps/gpu-screen-recorder.png"), version: "Não detectada", developer: "dec05eba", source: "Não consultada", has_update: false, installed: false }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.criacao-gravacao;
+                app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Vídeo";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "Kdenlive", description: "Edição de vídeo", icon: @image-url("../assets/apps/kdenlive.png"), version: "Não detectada", developer: "KDE", source: "Não consultada", has_update: false, installed: true },
-                    { name: "LosslessCut", description: "Cortes rápidos", icon: @image-url("../assets/apps/losslesscut.png"), version: "Não detectada", developer: "Mifi", source: "Não consultada", has_update: false, installed: false }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.criacao-video;
+                app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Áudio";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "Audacity", description: "Edição de áudio", icon: @image-url("../assets/apps/audacity.png"), version: "Não detectada", developer: "Muse Group", source: "Não consultada", has_update: false, installed: true },
-                    { name: "EasyEffects", description: "Processamento de áudio", icon: @image-url("../assets/apps/easyeffects.png"), version: "Não detectada", developer: "Comunidade EasyEffects", source: "Não consultada", has_update: false, installed: true }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.criacao-audio;
+                app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Social";
                 selected-app: root.selected-app;
-                apps: [
-                    { name: "Discord", description: "Voz e chat para comunidades", icon: @image-url("../assets/apps/discord.png"), version: "Não detectada", developer: "Discord Inc.", source: "Não consultada", has_update: false, installed: true },
-                    { name: "TeamSpeak 3", description: "Voz de baixa latência para jogos", icon: @image-url("../assets/apps/teamspeak.png"), version: "Não detectada", developer: "TeamSpeak Systems", source: "Não consultada", has_update: false, installed: false }
-                ];
-                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
-                    root.app-selected(name);
-                }
+                apps: CatalogData.criacao-social;
+                app-selected(app) => { root.app-selected(app); }
             }
         }
     }
@@ -1519,7 +1689,7 @@ export component MainWindow inherits Window {
     background: transparent;
 
     in-out property <int> active-navigation: 0;
-    in-out property <string> selected-app: "Steam";
+    in-out property <string> selected-app: "";
     property <string> page-title: root.active-navigation == 3 ? "Kernels e Drivers"
         : root.active-navigation == 4 ? "Otimização"
         : root.active-navigation == 5 ? "Overlay"
@@ -1566,7 +1736,7 @@ export component MainWindow inherits Window {
             width: parent.width - 256px;
             height: parent.height - 42px;
             selected-app: root.selected-app;
-            app-selected(name) => { root.selected-app = name; }
+            app-selected(app) => { root.selected-app = app.name; }
         }
 
         if root.active-navigation == 1: ContentPage {
@@ -1575,7 +1745,7 @@ export component MainWindow inherits Window {
             width: parent.width - 256px;
             height: parent.height - 42px;
             selected-app: root.selected-app;
-            app-selected(name) => { root.selected-app = name; }
+            app-selected(app) => { root.selected-app = app.name; }
         }
 
         if root.active-navigation == 2: MonitorPage {

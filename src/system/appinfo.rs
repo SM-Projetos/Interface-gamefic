@@ -1,0 +1,534 @@
+//! Catálogo de aplicativos do Gamefic (REGISTRY).
+//!
+//! Porta de `src-tauri/src/system/appinfo.rs` do repositório Gamefic.
+//! Os identificadores do REGISTRY são a fonte de verdade usada pela
+//! detecção: pacote nativo por família, app-id do Flatpak e nome do Snap
+//! são os pontos confiáveis de consulta — nada além disso é assumido.
+
+/// pacote nativo associado a uma família de distribuição
+/// (familia vazia = disponível para todas as famílias suportadas)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PkgNat {
+    pub pkg: &'static str,
+    pub familia: &'static str,
+}
+
+impl PkgNat {
+    pub const fn todas(pkg: &'static str) -> Self {
+        PkgNat { pkg, familia: "" }
+    }
+}
+
+pub struct AppInfo {
+    pub id: &'static str,
+    pub gui: bool,
+    pub nome: &'static str,
+    pub fornecedor: &'static str,
+    pub licenca: &'static str,
+    /// referência oficial usada para configurar fontes e comandos
+    pub doc: &'static str,
+    pub desc_curta: &'static str,
+    pub desc_longa: &'static str,
+    /// nomes de pacotes nativos por família — base de descoberta, não prova
+    pub nativos: &'static [PkgNat],
+    pub flatpak: Option<&'static str>,
+    /// nome verificado na Snap Store (vazio = sem snap oficial confirmado)
+    pub snap: Option<&'static str>,
+}
+
+impl AppInfo {
+    /// pacotes nativos aplicáveis à família detectada ("" casa com todas)
+    pub fn pacotes_aptos<'a>(
+        self: &'a Self,
+        familia: Option<&'a str>,
+    ) -> impl Iterator<Item = &'static str> + 'a {
+        self.nativos
+            .iter()
+            .filter(move |p| {
+                p.familia.is_empty()
+                    || familia
+                        .map(|f| p.familia.eq_ignore_ascii_case(f))
+                        .unwrap_or(false)
+            })
+            .map(|p| p.pkg)
+    }
+}
+
+/// procura o app pelo id do catálogo; None = id fora do REGISTRY
+pub fn achado(id: &str) -> Option<&'static AppInfo> {
+    REGISTRY.iter().find(|a| a.id == id)
+}
+
+pub(crate) const REGISTRY: &[AppInfo] = &[
+    AppInfo {
+        id: "steam",
+        gui: true,
+        doc: "https://repo.steampowered.com/steam/",
+        nome: "Steam",
+        fornecedor: "Valve Corporation",
+        licenca: "Proprietária (gratuita)",
+        desc_curta: "Loja e cliente de jogos da Valve",
+        desc_longa: "Plataforma da Valve para compra, organização e execução de jogos, com gerenciamento de biblioteca, atualizações automáticas, chat de amigos, Big Picture para TV e Steam Deck. Também distribui aplicações e ferramentas de desenvolvimento, e integra sistemas de proteção e recompensas com conquistas e Mercado da comunidade.",
+        nativos: &[
+            PkgNat::todas("steam"),
+        ],
+        flatpak: Some("com.valvesoftware.Steam"),
+        snap: Some("steam"),
+    },
+    AppInfo {
+        id: "lutris",
+        gui: true,
+        doc: "https://github.com/lutris/lutris/blob/master/docs/README.md",
+        nome: "Lutris",
+        fornecedor: "Comunidade Lutris",
+        licenca: "GPL-3.0",
+        desc_curta: "Gerenciador de jogos Wine/Proton",
+        desc_longa: "Organizador de jogos de múltiplas fontes (GOG, Epic, emuladores, instaladores de Windows) em uma interface única. Cada jogo roda com o runner apropriado — Wine, Proton, DOSBox, emuladores — e sincroniza instaladores da comunidade para reduzir a configuração.",
+        nativos: &[
+            PkgNat::todas("lutris"),
+        ],
+        flatpak: Some("net.lutris.Lutris"),
+        snap: None,
+    },
+    AppInfo {
+        id: "heroic",
+        gui: true,
+        doc: "https://heroicgameslauncher.com",
+        nome: "Heroic Games Launcher",
+        fornecedor: "Heroic Games Launcher (comunidade)",
+        licenca: "GPL-3.0",
+        desc_curta: "Launcher da Epic, GOG e Amazon",
+        desc_longa: "Interface gráfica em Electron que une a Epic Games, a GOG e a Amazon Prime Gaming. Gerencia bibliotecas de plataformas rivais com suporte a Proton/Wine, Wine-GE, atualizações do próprio launcher, cloud saves e integração com Protontricks.",
+        nativos: &[
+            PkgNat::todas("heroic-games-launcher"),
+        ],
+        flatpak: Some("com.heroicgameslauncher.hgl"),
+        snap: None,
+    },
+    AppInfo {
+        id: "bottles",
+        gui: true,
+        doc: "https://docs.usebottles.com",
+        nome: "Bottles",
+        fornecedor: "Bottles Developers",
+        licenca: "GPL-3.0",
+        desc_curta: "Gerenciador moderno de prefixos Wine",
+        desc_longa: "Ferramenta dedicada a criar e administrar prefixos Wine (\"bottles\") isolados entre si, cada um com versão própria de Wine/Proton, bibliotecas e variáveis de ambiente. Presets para gaming e programas facilitam a configuração sem lidar com comandos.",
+        nativos: &[],
+        snap: None,
+        flatpak: Some("com.usebottles.bottles"),
+    },
+    AppInfo {
+        id: "itch",
+        gui: true,
+        doc: "https://itch.io/docs/itch/",
+        nome: "Itch",
+        fornecedor: "itch.io (Leaf Corcoran)",
+        licenca: "MIT (cliente)",
+        desc_curta: "Loja indie da itch.io",
+        desc_longa: "Cliente desktop da loja de jogos independentes itch.io: sincroniza a biblioteca comprada ou financiada, atualiza jogáveis automaticamente em segundo plano e suporta devlog integração para criadores.",
+        nativos: &[],
+        snap: None,
+        flatpak: Some("io.itch.itch"),
+    },
+    AppInfo {
+        id: "minigalaxy",
+        gui: true,
+        doc: "https://github.com/sharkwouter/minigalaxy",
+        nome: "Minigalaxy",
+        fornecedor: "Comunidade Minigalaxy",
+        licenca: "GPL-3.0",
+        desc_curta: "Cliente GOG simples",
+        desc_longa: "Cliente leve focado em baixar, instalar e atualizar jogos da GOG com o mínimo de recursos. Permissão de salvar em outra pasta, atualização automática de títulos e suporte a DLC.",
+        nativos: &[],
+        snap: None,
+        flatpak: Some("io.github.sharkwouter.Minigalaxy"),
+    },
+    AppInfo {
+        id: "gamemode",
+        gui: false,
+        doc: "https://github.com/FeralInteractive/gamemode",
+        nome: "GameMode",
+        fornecedor: "Feral Interactive",
+        licenca: "BSD-3-Clause",
+        desc_curta: "Daemon de otimização para jogos",
+        desc_longa: "Daemon que aplica ajustes de desempenho quando um jogo solicita: preferência pelo governador de CPU, prioridade de processo e política de GPU quando o driver permite. Chamado no jogo via `gamemoderun` e configurável em per-game via ini.",
+        nativos: &[
+            PkgNat::todas("gamemode"),
+        ],
+        flatpak: None,
+        snap: None,
+    },
+    AppInfo {
+        id: "mangohud",
+        gui: false,
+        doc: "https://github.com/flightlessmango/MangoHud",
+        nome: "MangoHud",
+        fornecedor: "Comunidade MangoHud",
+        licenca: "MIT",
+        desc_curta: "Overlay de desempenho em jogos",
+        desc_longa: "Overlay de Vulkan e OpenGL que exibe FPS, latência de frame, uso de CPU/GPU/VRAM e temperaturas em tempo real. Ativado com `mangohud %command%` ou variável `MANGOHUD=1`, com predefinições e batch logging para sessões inteiras.",
+        nativos: &[
+            PkgNat::todas("mangohud"),
+        ],
+        flatpak: None,
+        snap: None,
+    },
+    AppInfo {
+        id: "gamescope",
+        gui: false,
+        doc: "https://github.com/ValveSoftware/gamescope",
+        nome: "Gamescope",
+        fornecedor: "Valve Corporation",
+        licenca: "BSD-2-Clause",
+        desc_curta: "Compositor de sessão de jogos",
+        desc_longa: "Microcompositor Wayland da Valve para sessões de jogo isoladas: resolução ficta a célula de imagem, escalonamento AMD FSR e NIS, VRR, eingelock a taxa de cuadros e re shielding de foco latente. Base das sessões de jogo do Steam Deck.",
+        nativos: &[
+            PkgNat::todas("gamescope"),
+        ],
+        flatpak: None,
+        snap: None,
+    },
+    AppInfo {
+        id: "lact",
+        gui: true,
+        doc: "https://github.com/ilya-zlobintsev/LACT",
+        nome: "LACT",
+        fornecedor: "Ilya Zlobintsev",
+        licenca: "MIT",
+        desc_curta: "Controle de GPU e ventoinhas",
+        desc_longa: "Controle gráfico por interface GTK4: clock, curvas de ventoinha, limites de potência e overclock/undervolt em GPUs AMD, NVIDIA e Intel, com daemon em execução em segundo plano e monitoramento uso/temperatura. Sucessor moderno do GreenWithEnvy.",
+        nativos: &[
+            PkgNat::todas("lact"),
+        ],
+        flatpak: Some("io.github.ilya_zlobintsev.LACT"),
+        snap: None,
+    },
+    AppInfo {
+        id: "goverlay",
+        gui: true,
+        doc: "https://github.com/benjamimgois/goverlay",
+        nome: "GOverlay",
+        fornecedor: "Benjami Gois / comunidade",
+        licenca: "GPL-3.0",
+        desc_curta: "Configurador gráfico do MangoHud",
+        desc_longa: "Editor visual para o MangoHud: posiciona e organiza métricas do overlay, salta em predefinições e também configura o vkBasalt para filtros de imagem. Evita editar arquivos de configuração à mão.",
+        nativos: &[
+            PkgNat::todas("goverlay"),
+        ],
+        flatpak: None,
+        snap: None,
+    },
+    AppInfo {
+        id: "winetricks",
+        gui: true,
+        doc: "https://github.com/Winetricks/winetricks",
+        nome: "Winetricks",
+        fornecedor: "Winetricks Contributors",
+        licenca: "LGPL-2.1",
+        desc_curta: "Bibliotecas e ajustes para prefixos Wine",
+        desc_longa: "Script de utilidades que instala componentes nativos em prefixos Wine: codecs/C++ runtime, DirectPlay, fontes e ajustes de registro. Padrão para fazer aplicações robustas.",
+        nativos: &[
+            PkgNat::todas("winetricks"),
+        ],
+        flatpak: None,
+        snap: None,
+    },
+    AppInfo {
+        id: "protontricks",
+        gui: true,
+        doc: "https://github.com/Matoking/protontricks",
+        nome: "Protontricks",
+        fornecedor: "Matoking",
+        licenca: "GPL-3.0",
+        desc_curta: "Winetricks por jogo do Steam",
+        desc_longa: "Roda Winetricks e comandos Wine apontando para o prefixo correto de cada jogo Steam com Proton, descobrindo os AppID automaticamente. Suporte a runtime Flatpak do Steam.",
+        nativos: &[
+            PkgNat::todas("protontricks"),
+        ],
+        flatpak: Some("com.github.Matoking.protontricks"),
+        snap: None,
+    },
+    AppInfo {
+        id: "wine",
+        gui: false,
+        doc: "https://wiki.winehq.org/Main_Page",
+        nome: "Wine",
+        fornecedor: "WineHQ",
+        licenca: "LGPL-2.1",
+        desc_curta: "Camada de compatibilidade Windows",
+        desc_longa: "Implementação livre de API Windows em Unix: executa binários nativos de Windows com camadas próprias de DLLs e conversão de chamadas, integrando com drivers e discos do Linux. Base do Proton, Lutris e Bottles.",
+        nativos: &[
+            PkgNat::todas("wine"),
+            PkgNat::todas("wine-staging"),
+            PkgNat { pkg: "wine-cachyos", familia: "Arch" },
+        ],
+        flatpak: None,
+        snap: None,
+    },
+    AppInfo {
+        id: "retroarch",
+        gui: true,
+        doc: "https://docs.libretro.com",
+        nome: "RetroArch",
+        fornecedor: "Libretro",
+        licenca: "GPL-3.0",
+        desc_curta: "Frontend de emuladores (Libretro)",
+        desc_longa: "Frontend unificado sobre a API Libretro: carrega núcleos de emuladores de centenas de plataformas com shaders em tempo real, replays de input, salvamentos por slot, rewind e netplay.",
+        nativos: &[
+            PkgNat::todas("retroarch"),
+        ],
+        flatpak: Some("org.libretro.RetroArch"),
+        snap: Some("retroarch"),
+    },
+    AppInfo {
+        id: "dolphin",
+        gui: true,
+        doc: "https://dolphin-emu.org/docs/",
+        nome: "Dolphin",
+        fornecedor: "Dolphin Emulator Team",
+        licenca: "GPL-2.0",
+        desc_curta: "GameCube e Wii",
+        desc_longa: "Emulador de referência de Nintendo GameCube e Wii: alta compatibilidade, resolução até 4K+, framerates acima do real, suporte a real Wiimote, cheat/trainer e câmera de Wii. Modos standalone e núcleo Libretro.",
+        nativos: &[
+            PkgNat::todas("dolphin-emu"),
+        ],
+        flatpak: Some("org.DolphinEmu.dolphin-emu"),
+        snap: None,
+    },
+    AppInfo {
+        id: "pcsx2",
+        gui: true,
+        doc: "https://pcsx2.net/docs/",
+        nome: "PCSX2",
+        fornecedor: "PCSX2 Development Team",
+        licenca: "GPL-3.0",
+        desc_curta: "PlayStation 2",
+        desc_longa: "Emulador de PlayStation 2 com alta compatibilidade (mais de 97%), suporte de upscaling, patch de framerates, texturas substituíveis e wide-screen hacks.",
+        nativos: &[
+            PkgNat::todas("pcsx2"),
+        ],
+        flatpak: Some("net.pcsx2.PCSX2"),
+        snap: None,
+    },
+    AppInfo {
+        id: "rpcs3",
+        gui: true,
+        doc: "https://rpcs3.net/quickstart",
+        nome: "RPCS3",
+        fornecedor: "RPCS3 Team",
+        licenca: "GPL-2.0",
+        desc_curta: "PlayStation 3",
+        desc_longa: "Emulador e debugger de PlayStation 3: emula SPUs/PPU via recompilação rápida, graduações consistentes, boot de PSP3 e PSN em modo local e firmware customizado com atualização de firmware PS3 oficial.",
+        nativos: &[],
+        snap: None,
+        flatpak: Some("net.rpcs3.RPCS3"),
+    },
+    AppInfo {
+        id: "ppsspp",
+        gui: true,
+        doc: "https://github.com/hrydgard/ppsspp",
+        nome: "PPSSPP",
+        fornecedor: "Henrik Rydgård",
+        licenca: "GPL-2.0",
+        desc_curta: "PlayStation Portable (PSP)",
+        desc_longa: "Emulador PSP multiplataforma: resolução pós 2x/4x, shaders, save state, multiplayer ad hoc local e suporte a Homebrew e firmware real via bootloader.",
+        nativos: &[
+            PkgNat::todas("ppsspp"),
+        ],
+        flatpak: Some("org.ppsspp.PPSSPP"),
+        snap: None,
+    },
+    AppInfo {
+        id: "duck",
+        gui: true,
+        doc: "https://www.duckstation.org",
+        nome: "DuckStation",
+        fornecedor: "Stenzek",
+        licenca: "BSD-3-Clause",
+        desc_curta: "PlayStation 1",
+        desc_longa: "Emulador de PlayStation 1 com foco em precisão: upscaling, PGXP para geometria sem oscilação, troca de disco em poça, troca de textura em tempo real e retroachievements.",
+        nativos: &[
+            PkgNat::todas("duckstation"),
+        ],
+        flatpak: Some("org.duckstation.DuckStation"),
+        snap: None,
+    },
+    AppInfo {
+        id: "mgba",
+        gui: true,
+        doc: "https://mgba.io/docs.html",
+        nome: "mGBA",
+        fornecedor: "Jeffrey Pfau",
+        licenca: "MPL-2.0",
+        desc_curta: "Game Boy Advance",
+        desc_longa: "Emulador de Game Boy Advance com precisão de ciclos, suporte real-time a cheats, real-time clock, rpc de hardware (GBA portátil) e Beltload em capacidades de pegar jogos de GB/GBC.",
+        nativos: &[
+            PkgNat::todas("mgba"),
+        ],
+        flatpak: Some("io.mgba.mGBA"),
+        snap: None,
+    },
+    AppInfo {
+        id: "mame",
+        gui: true,
+        doc: "https://docs.mamedev.org",
+        nome: "MAME",
+        fornecedor: "MAMEdev",
+        licenca: "GPL-2.0 (núcleo) / BSD-3",
+        desc_curta: "Jogos de arcade (multi-sistemas)",
+        desc_longa: "Emulador de preservação histórica de milhares de máquinas de arcade, consoles e computadores antigos. Precisão de hardware documentada, ROMs verificadas por listas de software e suporte a receptáculos de joystick.",
+        nativos: &[
+            PkgNat::todas("mame"),
+        ],
+        flatpak: Some("org.mamedev.MAME"),
+        snap: None,
+    },
+    AppInfo {
+        id: "openrgb",
+        gui: true,
+        doc: "https://wiki.openrgb.org",
+        nome: "OpenRGB",
+        fornecedor: "Comunidade OpenRGB",
+        licenca: "GPL-2.0",
+        desc_curta: "Controle de iluminação RGB",
+        desc_longa: "Controle unificado de iluminação RGB de teclados, mouses, placas-mãe, memórias, GPUs e periféricos de fabricantes variados (auto-detecção por protocolos próprios), com efeitos, perfis salvas e SDK para integração com jogos.",
+        nativos: &[
+            PkgNat::todas("openrgb"),
+        ],
+        flatpak: Some("org.openrgb.OpenRGB"),
+        snap: None,
+    },
+    AppInfo {
+        id: "oversteer",
+        gui: true,
+        doc: "https://github.com/berarma/oversteer/wiki",
+        nome: "Oversteer",
+        fornecedor: "Bernat Arlandis",
+        licenca: "GPL-3.0",
+        desc_curta: "Gerente de volantes de corrida",
+        desc_longa: "Configuração de volantes e pedais no Linux: calibração de rotação e centro, sensibilidade, filtros de força, teste de feedback e perfis por jogo.",
+        nativos: &[],
+        flatpak: Some("io.github.berarma.Oversteer"),
+        snap: None,
+    },
+    // ---------- criação de conteúdo ----------
+    AppInfo {
+        id: "obs",
+        gui: true,
+        doc: "https://obsproject.com/wiki",
+        nome: "OBS Studio",
+        fornecedor: "OBS Project",
+        licenca: "GPL-2.0",
+        desc_curta: "Gravação e streaming",
+        desc_longa: "Studio de gravação de tela e transmissão ao vivo: cenas compostas por múltiplas fontes (tela, janela, webcam, captação de áudio), codificação por NVENC/VAAPI/x264, filtros de áudio por faixa e suporte a plugins da comunidade.",
+        nativos: &[
+            PkgNat::todas("obs-studio"),
+        ],
+        flatpak: Some("com.obsproject.Studio"),
+        snap: None,
+    },
+    AppInfo {
+        id: "gpu-screen-recorder",
+        gui: true,
+        doc: "https://git.dec05eba.com/gpu-screen-recorder/about/",
+        nome: "GPU Screen Recorder",
+        fornecedor: "dec05eba",
+        licenca: "GPL-3.0",
+        desc_curta: "Gravação de gameplay",
+        desc_longa: "Gravador de tela com captura acelerada por GPU (VAAPI/NVENC): grava gameplay com perda mínima de desempenho, com clipe instantâneo (replay buffer), gravação por hotkey e saída MP4/WebM contornando o overhead de codificação por CPU.",
+        nativos: &[
+            PkgNat::todas("gpu-screen-recorder"),
+        ],
+        flatpak: Some("com.dec05eba.gpu_screen_recorder"),
+        snap: None,
+    },
+    AppInfo {
+        id: "kdenlive",
+        gui: true,
+        doc: "https://docs.kde.org/stable5/kdenlive/",
+        nome: "Kdenlive",
+        fornecedor: "KDE",
+        licenca: "GPL-3.0",
+        desc_curta: "Edição de vídeo",
+        desc_longa: "Editor de vídeo não-linear: linha do tempo multi-faixa, efeitos e transições do MLT, proxy de mídia para edição leve, coloração, titulação e exportação por FFmpeg em dezenas de formatos.",
+        nativos: &[
+            PkgNat::todas("kdenlive"),
+        ],
+        flatpak: Some("org.kde.kdenlive"),
+        snap: None,
+    },
+    AppInfo {
+        id: "losslesscut",
+        gui: true,
+        doc: "https://github.com/mifi/lossless-cut/blob/master/README.md",
+        nome: "LosslessCut",
+        fornecedor: "Mifi",
+        licenca: "GPL-2.0",
+        desc_curta: "Cortes rápidos",
+        desc_longa: "Cortador de vídeo/áudio sem re-codificação: recorta trechos no tempo de quadro-chave com o FFmpeg, preservando a qualidade original e operando em segundos mesmo em arquivos grandes; também extrai faixas de áudio e faixas de legendas.",
+        nativos: &[],
+        flatpak: Some("no.mifi.losslesscut"),
+        snap: None,
+    },
+    AppInfo {
+        id: "audacity",
+        gui: true,
+        doc: "https://support.audacityteam.org",
+        nome: "Audacity",
+        fornecedor: "Muse Group",
+        licenca: "GPL-3.0",
+        desc_curta: "Edição de áudio",
+        desc_longa: "Editor de áudio multi-faixa: gravação em várias entradas, edição espectral, efeitos nativos e por plug-ins (LADSPA/LV2/VST), análise, normalização e exportação aos formatos comuns (WAV, MP3, OGG, FLAC).",
+        nativos: &[
+            PkgNat::todas("audacity"),
+        ],
+        flatpak: Some("org.audacityteam.Audacity"),
+        snap: None,
+    },
+    AppInfo {
+        id: "easyeffects",
+        gui: true,
+        doc: "https://github.com/wwmm/easyeffects/wiki",
+        nome: "EasyEffects",
+        fornecedor: "Comunidade EasyEffects",
+        licenca: "GPL-3.0",
+        desc_curta: "Processamento de áudio",
+        desc_longa: "Processador de áudio em tempo real sobre o PipeWire: cadeias de efeitos (equalizador, compressor, limitador, reverb, cancelador de ruído) aplicadas às saídas e entradas do sistema, com presets por aplicativo.",
+        nativos: &[
+            PkgNat::todas("easyeffects"),
+        ],
+        flatpak: Some("com.github.wwmm.easyeffects"),
+        snap: None,
+    },
+    AppInfo {
+        id: "discord",
+        gui: true,
+        doc: "https://support.discord.com",
+        nome: "Discord",
+        fornecedor: "Discord Inc.",
+        licenca: "Proprietária (gratuita)",
+        desc_curta: "Voz e chat para comunidades",
+        desc_longa: "Cliente de comunidade com canais de voz com baixa latência, chat, vídeo e compartilhamento de tela — padrão em servidores de jogos. No Linux, o compartilhamento de tela depende da versão e do ambiente gráfico.",
+        nativos: &[
+            PkgNat::todas("discord"),
+        ],
+        flatpak: Some("com.discordapp.Discord"),
+        snap: None,
+    },
+    AppInfo {
+        id: "teamspeak",
+        gui: true,
+        doc: "https://www.teamspeak.com/en/support/",
+        nome: "TeamSpeak 3",
+        fornecedor: "TeamSpeak Systems",
+        licenca: "Proprietária (gratuita)",
+        desc_curta: "Voz de baixa latência para jogos",
+        desc_longa: "Cliente de voz sobre IP servidor-cliente com latência mínima, codec ajustável, permissões por canal e consumo baixo de recursos — amplamente usado em partidas competitivas e comunidades de jogos.",
+        nativos: &[
+            PkgNat { pkg: "teamspeak3", familia: "Arch" },
+        ],
+        flatpak: Some("com.teamspeak.TeamSpeak"),
+        snap: None,
+    },
+];
