@@ -286,7 +286,7 @@ component Sidebar inherits Rectangle {
                 selected => { root.navigation-selected(1); }
             }
             NavigationItem {
-                label: "Monitorado";
+                label: "Monitor";
                 icon-image: @image-url("../assets/icons/nav-monitor.svg");
                 active: root.active-navigation == 2;
                 selected => { root.navigation-selected(2); }
@@ -1118,6 +1118,398 @@ component PlaceholderPage inherits Rectangle {
     }
 }
 
+// ---- Monitor (adaptado da PerformancePage do repo Gamefic, branch gamefic-slint) ----
+// Estados vazios/indisponíveis seguem o padrão do catálogo: nenhum dado é
+// estimado; valores reais chegam quando o backend do monitor for integrado.
+
+component IntervalOption inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected;
+    callback activated();
+
+    width: 54px;
+    height: 30px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.selected ? Theme.accent : Theme.card-border;
+    background: root.selected
+        ? (Theme.dark-mode ? rgba(22, 211, 232, 0.16) : rgba(7, 153, 223, 0.12))
+        : Theme.nav-hover;
+
+    Text {
+        font-family: "Inter";
+        text: root.label;
+        color: root.selected ? Theme.accent : Theme.text-muted;
+        font-size: 11px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    option-touch := TouchArea { clicked => { root.activated(); } }
+}
+
+component MetricChart inherits Rectangle {
+    in property <string> path-data;
+    in property <color> line-color: Theme.accent;
+    height: 64px;
+    background: transparent;
+
+    Rectangle {
+        y: 16px;
+        width: 100%;
+        height: 1px;
+        background: Theme.separator;
+    }
+    Rectangle {
+        y: 40px;
+        width: 100%;
+        height: 1px;
+        background: Theme.separator;
+    }
+    Path {
+        commands: root.path-data;
+        width: 100%;
+        height: 100%;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: root.line-color;
+        stroke-width: 2.5px;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+        fill: transparent;
+    }
+}
+
+component MetricCard inherits Rectangle {
+    in property <string> title;
+    in property <string> value;
+    in property <string> detail-a;
+    in property <string> detail-b;
+    in property <string> history-path;
+    in property <color> line-color: Theme.accent;
+
+    height: 224px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 7px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: Theme.dark-mode ? rgba(0, 8, 18, 0.30) : rgba(80, 130, 170, 0.13);
+
+    VerticalLayout {
+        padding: 15px;
+        spacing: 9px;
+
+        HorizontalLayout {
+            Text {
+                font-family: "Inter";
+                text: root.title;
+                color: Theme.text-muted;
+                font-size: 12px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; background: transparent; }
+            Rectangle {
+                width: 7px;
+                Rectangle {
+                    x: 0;
+                    y: (parent.height - self.height) / 2;
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 4px;
+                    background: root.line-color;
+                }
+            }
+        }
+
+        Text {
+            font-family: "Inter";
+            text: root.value;
+            color: Theme.text-main;
+            font-size: 27px;
+            font-weight: 750;
+            vertical-alignment: center;
+        }
+
+        Text {
+            font-family: "Inter";
+            text: root.detail-a;
+            color: Theme.text-muted;
+            font-size: 10px;
+            wrap: word-wrap;
+            max-lines: 2;
+        }
+        Text {
+            font-family: "Inter";
+            text: root.detail-b;
+            color: Theme.text-muted;
+            font-size: 10px;
+            wrap: word-wrap;
+            max-lines: 2;
+        }
+
+        Rectangle { vertical-stretch: 1; background: transparent; }
+        MetricChart {
+            path-data: root.history-path;
+            line-color: root.line-color;
+        }
+    }
+}
+
+component MemoryColumn inherits Rectangle {
+    in property <string> title;
+    in property <string> value;
+    in property <string> detail-a;
+    in property <string> detail-b;
+    in property <string> history-path;
+    in property <color> line-color: Theme.accent;
+
+    VerticalLayout {
+        padding: 14px;
+        spacing: 8px;
+        Text {
+            font-family: "Inter";
+            text: root.title;
+            color: Theme.text-muted;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        Text {
+            font-family: "Inter";
+            text: root.value;
+            color: Theme.text-main;
+            font-size: 25px;
+            font-weight: 750;
+        }
+        Text {
+            font-family: "Inter";
+            text: root.detail-a;
+            color: Theme.text-muted;
+            font-size: 10px;
+            wrap: word-wrap;
+        }
+        Text {
+            font-family: "Inter";
+            text: root.detail-b;
+            color: Theme.text-muted;
+            font-size: 10px;
+            wrap: word-wrap;
+        }
+        Rectangle { vertical-stretch: 1; background: transparent; }
+        MetricChart {
+            path-data: root.history-path;
+            line-color: root.line-color;
+        }
+    }
+}
+
+// Aba Monitor: métricas em tempo real (CPU, rede, GPU, VRAM, RAM, SWAP) e
+// armazenamento, conforme a PerformancePage do repo Gamefic. Enquanto o
+// backend não é integrado, os cartões mostram os estados vazios do repo
+// ("—", "Não disponível") e os gráficos ficam sem amostras.
+component MonitorPage inherits Rectangle {
+    in-out property <int> interval-ms: 2000;
+
+    background: Theme.page-bg;
+
+    VerticalLayout {
+        padding-left: 40px;
+        padding-right: 56px;
+        padding-top: 36px;
+        padding-bottom: 38px;
+        spacing: 18px;
+
+        HorizontalLayout {
+            height: 64px;
+            spacing: 12px;
+
+            VerticalLayout {
+                spacing: 4px;
+                Text {
+                    font-family: "Inter";
+                    text: "Monitor do Sistema";
+                    color: Theme.text-main;
+                    font-size: 36px;
+                    font-weight: 800;
+                    height: 43px;
+                }
+                Text {
+                    font-family: "Inter";
+                    text: "Métricas em tempo real do hardware e da rede";
+                    color: Theme.text-muted;
+                    font-size: 16px;
+                    vertical-alignment: center;
+                }
+            }
+            Rectangle { horizontal-stretch: 1; background: transparent; }
+            Text {
+                font-family: "Inter";
+                text: "INTERVALO";
+                color: Theme.text-muted;
+                font-size: 11px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            IntervalOption {
+                label: "1 s";
+                selected: root.interval-ms == 1000;
+                activated => { root.interval-ms = 1000; }
+            }
+            IntervalOption {
+                label: "2 s";
+                selected: root.interval-ms == 2000;
+                activated => { root.interval-ms = 2000; }
+            }
+            IntervalOption {
+                label: "5 s";
+                selected: root.interval-ms == 5000;
+                activated => { root.interval-ms = 5000; }
+            }
+        }
+
+        HorizontalLayout {
+            height: 224px;
+            spacing: 12px;
+            MetricCard {
+                horizontal-stretch: 1;
+                title: "CPU";
+                value: "—";
+                detail-a: "Aguardando primeira amostra";
+                detail-b: "Frequência média indisponível";
+                history-path: "";
+                line-color: #a78bfa;
+            }
+            MetricCard {
+                horizontal-stretch: 1;
+                title: "REDE";
+                value: "Aguardando dados";
+                detail-a: "Download: —";
+                detail-b: "Upload: —";
+                history-path: "";
+                line-color: #22d3ee;
+            }
+            MetricCard {
+                horizontal-stretch: 1;
+                title: "GPU";
+                value: "Não disponível";
+                detail-a: "Métricas dependem do driver";
+                detail-b: "Temperatura: —";
+                history-path: "";
+                line-color: #22d3ee;
+            }
+            MetricCard {
+                horizontal-stretch: 1;
+                title: "VRAM";
+                value: "Não disponível";
+                detail-a: "Memória de vídeo indisponível";
+                detail-b: "Uso: —";
+                history-path: "";
+                line-color: #a78bfa;
+            }
+        }
+
+        HorizontalLayout {
+            height: 268px;
+            spacing: 12px;
+
+            Rectangle {
+                horizontal-stretch: 3;
+                height: 268px;
+                border-radius: 14px;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                background: Theme.card-bg;
+                drop-shadow-offset-x: 0px;
+                drop-shadow-offset-y: 7px;
+                drop-shadow-blur: 12px;
+                drop-shadow-color: Theme.dark-mode ? rgba(0, 8, 18, 0.30) : rgba(80, 130, 170, 0.13);
+
+                HorizontalLayout {
+                    MemoryColumn {
+                        horizontal-stretch: 1;
+                        title: "MEMÓRIA RAM";
+                        value: "—";
+                        detail-a: "Em uso: —";
+                        detail-b: "Disponível: —";
+                        history-path: "";
+                        line-color: #a78bfa;
+                    }
+                    Rectangle {
+                        width: 1px;
+                        Rectangle {
+                            x: 0;
+                            y: (parent.height - self.height) / 2;
+                            width: 1px;
+                            height: 210px;
+                            background: Theme.separator;
+                        }
+                    }
+                    MemoryColumn {
+                        horizontal-stretch: 1;
+                        title: "SWAP";
+                        value: "—";
+                        detail-a: "Em uso: —";
+                        detail-b: "Disponível: —";
+                        history-path: "";
+                        line-color: #22d3ee;
+                    }
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 2;
+                height: 268px;
+                border-radius: 14px;
+                border-width: 1px;
+                border-color: Theme.card-border;
+                background: Theme.card-bg;
+                drop-shadow-offset-x: 0px;
+                drop-shadow-offset-y: 7px;
+                drop-shadow-blur: 12px;
+                drop-shadow-color: Theme.dark-mode ? rgba(0, 8, 18, 0.30) : rgba(80, 130, 170, 0.13);
+
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 10px;
+                    Text {
+                        font-family: "Inter";
+                        text: "ARMAZENAMENTO";
+                        color: Theme.text-muted;
+                        font-size: 12px;
+                        font-weight: 700;
+                    }
+                    Rectangle { vertical-stretch: 1; background: transparent; }
+                    Text {
+                        font-family: "Inter";
+                        text: "Leitura de unidades ainda não integrada ao Gamefic.";
+                        color: Theme.text-muted;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    Text {
+                        font-family: "Inter";
+                        text: "Nenhuma capacidade ou utilização é estimada.";
+                        color: Theme.text-muted;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+
+        Text {
+            font-family: "Inter";
+            text: "Dados indisponíveis são exibidos sem estimativas. A telemetria da GPU depende do suporte do driver.";
+            color: Theme.text-muted;
+            font-size: 12px;
+            wrap: word-wrap;
+        }
+    }
+}
+
 export component MainWindow inherits Window {
     title: "Gamefic";
     no-frame: true;
@@ -1128,8 +1520,7 @@ export component MainWindow inherits Window {
 
     in-out property <int> active-navigation: 0;
     in-out property <string> selected-app: "Steam";
-    property <string> page-title: root.active-navigation == 2 ? "Monitorado"
-        : root.active-navigation == 3 ? "Kernels e Drivers"
+    property <string> page-title: root.active-navigation == 3 ? "Kernels e Drivers"
         : root.active-navigation == 4 ? "Otimização"
         : root.active-navigation == 5 ? "Overlay"
         : "Histórico e Diagnósticos";
@@ -1187,7 +1578,14 @@ export component MainWindow inherits Window {
             app-selected(name) => { root.selected-app = name; }
         }
 
-        if root.active-navigation >= 2: PlaceholderPage {
+        if root.active-navigation == 2: MonitorPage {
+            x: 256px;
+            y: 42px;
+            width: parent.width - 256px;
+            height: parent.height - 42px;
+        }
+
+        if root.active-navigation >= 3: PlaceholderPage {
             x: 256px;
             y: 42px;
             width: parent.width - 256px;
