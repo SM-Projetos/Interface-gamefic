@@ -49,6 +49,47 @@ struct AppInfo {
     has_update: bool,
 }
 
+// Estado compartilhado da janela de detalhes do catálogo: vive em escopo global
+// para que o modal seja renderizado na MainWindow, centrado sobre a janela toda.
+global CatalogModal {
+    in-out property <bool> open: false;
+    in-out property <string> name;
+    in-out property <string> description;
+    in-out property <image> icon;
+    in-out property <bool> installed;
+    in-out property <string> category;
+    in-out property <string> version;
+    in-out property <string> developer;
+    in-out property <string> source;
+    in-out property <bool> has-update;
+    in-out property <string> action-message: "Ações demonstrativas: o backend ainda não está conectado.";
+
+    // Abre a janela de detalhes com o contexto do cartão selecionado.
+    public function open-details(
+        app-name: string,
+        app-description: string,
+        app-icon: image,
+        app-installed: bool,
+        app-category: string,
+        app-version: string,
+        app-developer: string,
+        app-source: string,
+        app-has-update: bool,
+    ) {
+        self.name = app-name;
+        self.description = app-description;
+        self.icon = app-icon;
+        self.installed = app-installed;
+        self.category = app-category;
+        self.version = app-version;
+        self.developer = app-developer;
+        self.source = app-source;
+        self.has-update = app-has-update;
+        self.action-message = "Ações demonstrativas: nenhum comando do sistema é executado.";
+        self.open = true;
+    }
+}
+
 component NavigationItem inherits Rectangle {
     in property <string> label;
     in property <image> icon-image;
@@ -65,6 +106,7 @@ component NavigationItem inherits Rectangle {
         padding-right: 10px;
         spacing: 12px;
         alignment: start;
+        cross-axis-alignment: center;
         Image {
             source: root.icon-image;
             width: 22px;
@@ -88,6 +130,86 @@ component NavigationItem inherits Rectangle {
 
     touch := TouchArea {
         clicked => { root.selected(); }
+    }
+}
+
+// Barra de título própria para a janela sem moldura: título centrado,
+// botões de janela à direita e área de arraste pressionando o fundo da barra.
+component TitleBarButton inherits Rectangle {
+    in property <string> glyph;
+    in property <bool> danger: false;
+    callback pressed();
+
+    width: 42px;
+    height: 30px;
+    border-radius: 8px;
+    background: touch.has-hover ? (root.danger ? #d24b5a : Theme.nav-hover) : #00000000;
+
+    Text {
+        font-family: "Inter";
+        text: root.glyph;
+        color: touch.has-hover && root.danger ? #ffffff : Theme.text-main;
+        font-size: 14px;
+        font-weight: 650;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        clicked => { root.pressed(); }
+    }
+}
+
+component TitleBar inherits Rectangle {
+    callback minimize-requested();
+    callback maximize-requested();
+    callback close-requested();
+    height: 42px;
+    background: Theme.window-bg;
+    accessible-role: window-title-bar;
+
+    WindowMoveArea { }
+
+    Text {
+        font-family: "Inter";
+        text: "Gamefic";
+        color: Theme.text-main;
+        font-size: 15px;
+        font-weight: 650;
+        width: parent.width;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: parent.width - 142px;
+        y: (parent.height - 30px) / 2;
+        width: 134px;
+        height: 30px;
+
+        HorizontalLayout {
+            spacing: 4px;
+            TitleBarButton {
+                glyph: "–";
+                pressed => { root.minimize-requested(); }
+            }
+            TitleBarButton {
+                glyph: "□";
+                pressed => { root.maximize-requested(); }
+            }
+            TitleBarButton {
+                glyph: "✕";
+                danger: true;
+                pressed => { root.close-requested(); }
+            }
+        }
+    }
+
+    Rectangle {
+        y: parent.height - 1px;
+        width: parent.width;
+        height: 1px;
+        background: Theme.separator;
     }
 }
 
@@ -580,19 +702,275 @@ component ModalAction inherits Rectangle {
     }
 }
 
+// Janela de detalhes do aplicativo, renderizada na MainWindow para ficar
+// centralizada sobre a janela inteira (sidebar e barra superior incluídas).
+component DetailsDialog inherits Rectangle {
+    width: 100%;
+    height: 100%;
+    background: rgba(2, 10, 24, 0.74);
+
+    // Modal de tamanho fixo, centralizado sobre a janela inteira por cálculo
+    // explícito (o VerticalLayout de centralização comportou-se de forma
+    // instável quando o dialog é filho direto da Window).
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 760px;
+        height: 620px;
+        border-radius: 26px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        background: Theme.card-bg;
+        drop-shadow-offset-x: 0px;
+        drop-shadow-offset-y: 16px;
+        drop-shadow-blur: 38px;
+        drop-shadow-color: rgba(0, 0, 0, 0.46);
+
+            VerticalLayout {
+                padding: 30px;
+                spacing: 15px;
+
+                HorizontalLayout {
+                    height: 86px;
+                    spacing: 17px;
+
+                    Image {
+                        source: CatalogModal.icon;
+                        width: 76px;
+                        height: 76px;
+                        image-fit: contain;
+                        vertical-alignment: center;
+                    }
+
+                    VerticalLayout {
+                        vertical-stretch: 1;
+                        alignment: center;
+                        spacing: 5px;
+
+                        Text {
+                            font-family: "Inter";
+                            text: CatalogModal.name;
+                            color: Theme.text-main;
+                            font-size: 26px;
+                            font-weight: 750;
+                            vertical-alignment: center;
+                        }
+
+                        Text {
+                            font-family: "Inter";
+                            text: CatalogModal.category;
+                            color: Theme.text-muted;
+                            font-size: 14px;
+                            font-weight: 650;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        width: 128px;
+                        height: 34px;
+                        border-radius: 17px;
+                        background: CatalogModal.installed ? Theme.status-installed : Theme.status-not-installed;
+                        border-width: CatalogModal.installed ? 0px : 1px;
+                        border-color: Theme.card-border;
+
+                        Text {
+                            font-family: "Inter";
+                            text: CatalogModal.installed ? "Instalado" : "Não instalado";
+                            color: CatalogModal.installed ? #ffffff : Theme.status-not-installed-text;
+                            font-size: 13px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        width: 38px;
+                        height: 38px;
+                        border-radius: 19px;
+                        background: close-touch.has-hover ? Theme.card-bg-highlight : Theme.nav-hover;
+
+                        Text {
+                            font-family: "Inter";
+                            text: "×";
+                            color: Theme.text-main;
+                            font-size: 25px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        close-touch := TouchArea {
+                            clicked => { CatalogModal.open = false; }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: 100%;
+                    height: 1px;
+                    background: Theme.separator;
+                }
+
+                VerticalLayout {
+                    spacing: 7px;
+
+                    Text {
+                        font-family: "Inter";
+                        text: "Sobre o aplicativo";
+                        color: Theme.text-main;
+                        font-size: 18px;
+                        font-weight: 750;
+                    }
+
+                    Text {
+                        font-family: "Inter";
+                        text: CatalogModal.description;
+                        color: Theme.text-muted;
+                        font-size: 15px;
+                        wrap: word-wrap;
+                        height: 48px;
+                        vertical-alignment: top;
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 82px;
+                    spacing: 12px;
+
+                    DetailTile {
+                        tile-label: "Versão instalada";
+                        tile-value: CatalogModal.version;
+                    }
+
+                    DetailTile {
+                        tile-label: "Desenvolvedor";
+                        tile-value: CatalogModal.developer;
+                    }
+
+                    DetailTile {
+                        tile-label: "Origem";
+                        tile-value: CatalogModal.source;
+                    }
+                }
+
+                Rectangle {
+                    width: 100%;
+                    height: 1px;
+                    background: Theme.separator;
+                }
+
+                VerticalLayout {
+                    spacing: 8px;
+
+                    Text {
+                        font-family: "Inter";
+                        text: "Ações";
+                        color: Theme.text-main;
+                        font-size: 17px;
+                        font-weight: 750;
+                    }
+
+                    HorizontalLayout {
+                        height: 44px;
+                        spacing: 10px;
+
+                        if CatalogModal.installed: ModalAction {
+                            width: 132px;
+                            label: "Abrir";
+                            variant: "primary";
+                            clicked => {
+                                CatalogModal.action-message = "Abrir: integração com o backend ainda pendente.";
+                            }
+                        }
+
+                        if CatalogModal.installed && CatalogModal.has-update: ModalAction {
+                            width: 138px;
+                            label: "Atualizar";
+                            variant: "secondary";
+                            clicked => {
+                                CatalogModal.action-message = "Atualizar: a verificação de versões ainda não está conectada.";
+                            }
+                        }
+
+                        if CatalogModal.installed: ModalAction {
+                            width: 132px;
+                            label: "Remover";
+                            variant: "danger";
+                            clicked => {
+                                CatalogModal.action-message = "Remover: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
+                            }
+                        }
+
+                        if !CatalogModal.installed: ModalAction {
+                            width: 160px;
+                            label: "Escolher fonte";
+                            variant: "secondary";
+                            clicked => {
+                                CatalogModal.action-message = "As fontes disponíveis serão listadas quando a detecção do sistema for integrada.";
+                            }
+                        }
+
+                        if !CatalogModal.installed: ModalAction {
+                            width: 132px;
+                            label: "Instalar";
+                            variant: "primary";
+                            clicked => {
+                                CatalogModal.action-message = "Instalar: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
+                            }
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            background: #00000000;
+                        }
+
+                        ModalAction {
+                            width: 118px;
+                            label: "Fechar";
+                            variant: "secondary";
+                            clicked => { CatalogModal.open = false; }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: 100%;
+                    height: 42px;
+                    border-radius: 12px;
+                    background: Theme.dark-mode ? #071a30 : #f0f7fc;
+
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 8px;
+                        alignment: center;
+
+                        Text {
+                            font-family: "Inter";
+                            text: "i";
+                            color: Theme.accent;
+                            font-size: 15px;
+                            font-weight: 800;
+                        }
+
+                        Text {
+                            font-family: "Inter";
+                            text: CatalogModal.action-message;
+                            color: Theme.text-muted;
+                            font-size: 12px;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+                    }
+                }
+            }
+    }
+}
+
 component AppCatalogPage inherits Rectangle {
     in-out property <string> selected-app: "Steam";
-    in-out property <bool> details-open: false;
-    in-out property <string> detail-name: "";
-    in-out property <string> detail-description: "";
-    in-out property <image> detail-icon;
-    in-out property <bool> detail-installed: false;
-    in-out property <string> detail-category: "";
-    in-out property <string> detail-version: "";
-    in-out property <string> detail-developer: "";
-    in-out property <string> detail-source: "";
-    in-out property <bool> detail-has-update: false;
-    in-out property <string> detail-action-message: "Ações demonstrativas: o backend ainda não está conectado.";
     callback app-selected(string);
 
     background: Theme.page-bg;
@@ -649,18 +1027,7 @@ component AppCatalogPage inherits Rectangle {
                     { name: "Bottles", description: "Gerencie ambientes para executar apps e jogos.", icon: @image-url("../assets/icons/bottles.svg"), version: "Não detectada", developer: "Bottles Team", source: "Não consultada", has_update: false, installed: true }
                 ];
                 app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    root.selected-app = name;
-                    root.detail-name = name;
-                    root.detail-description = description;
-                    root.detail-icon = icon;
-                    root.detail-installed = installed;
-                    root.detail-category = category;
-                    root.detail-version = version;
-                    root.detail-developer = developer;
-                    root.detail-source = source;
-                    root.detail-has-update = has-update;
-                    root.detail-action-message = "Ações demonstrativas: nenhum comando do sistema é executado.";
-                    root.details-open = true;
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
                     root.app-selected(name);
                 }
             }
@@ -679,285 +1046,8 @@ component AppCatalogPage inherits Rectangle {
                     { name: "MAME", description: "Emulador de máquinas de arcade.", icon: @image-url("../assets/icons/mame.svg"), version: "Não detectada", developer: "MAME Team", source: "Não consultada", has_update: false, installed: true }
                 ];
                 app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
-                    root.selected-app = name;
-                    root.detail-name = name;
-                    root.detail-description = description;
-                    root.detail-icon = icon;
-                    root.detail-installed = installed;
-                    root.detail-category = category;
-                    root.detail-version = version;
-                    root.detail-developer = developer;
-                    root.detail-source = source;
-                    root.detail-has-update = has-update;
-                    root.detail-action-message = "Ações demonstrativas: nenhum comando do sistema é executado.";
-                    root.details-open = true;
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
                     root.app-selected(name);
-                }
-            }
-        }
-    }
-
-    if root.details-open: Rectangle {
-        width: 100%;
-        height: 100%;
-        background: rgba(2, 10, 24, 0.74);
-
-        VerticalLayout {
-            width: 100%;
-            height: 100%;
-            alignment: center;
-
-            Rectangle {
-                width: 760px;
-                height: 620px;
-                border-radius: 26px;
-                border-width: 1px;
-                border-color: Theme.card-border;
-                background: Theme.card-bg;
-                drop-shadow-offset-x: 0px;
-                drop-shadow-offset-y: 16px;
-                drop-shadow-blur: 38px;
-                drop-shadow-color: rgba(0, 0, 0, 0.46);
-
-                VerticalLayout {
-                    padding: 30px;
-                    spacing: 15px;
-
-                    HorizontalLayout {
-                        height: 86px;
-                        spacing: 17px;
-
-                        Image {
-                            source: root.detail-icon;
-                            width: 76px;
-                            height: 76px;
-                            image-fit: contain;
-                            vertical-alignment: center;
-                        }
-
-                        VerticalLayout {
-                            vertical-stretch: 1;
-                            alignment: center;
-                            spacing: 5px;
-
-                            Text {
-                                font-family: "Inter";
-                                text: root.detail-name;
-                                color: Theme.text-main;
-                                font-size: 26px;
-                                font-weight: 750;
-                                vertical-alignment: center;
-                            }
-
-                            Text {
-                                font-family: "Inter";
-                                text: root.detail-category;
-                                color: Theme.text-muted;
-                                font-size: 14px;
-                                font-weight: 650;
-                                vertical-alignment: center;
-                            }
-                        }
-
-                        Rectangle {
-                            width: 128px;
-                            height: 34px;
-                            border-radius: 17px;
-                            background: root.detail-installed ? Theme.status-installed : Theme.status-not-installed;
-                            border-width: root.detail-installed ? 0px : 1px;
-                            border-color: Theme.card-border;
-
-                            Text {
-                                font-family: "Inter";
-                                text: root.detail-installed ? "Instalado" : "Não instalado";
-                                color: root.detail-installed ? #ffffff : Theme.status-not-installed-text;
-                                font-size: 13px;
-                                font-weight: 700;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-
-                        Rectangle {
-                            width: 38px;
-                            height: 38px;
-                            border-radius: 19px;
-                            background: close-touch.has-hover ? Theme.card-bg-highlight : Theme.nav-hover;
-
-                            Text {
-                                font-family: "Inter";
-                                text: "×";
-                                color: Theme.text-main;
-                                font-size: 25px;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-
-                            close-touch := TouchArea {
-                                clicked => { root.details-open = false; }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: 100%;
-                        height: 1px;
-                        background: Theme.separator;
-                    }
-
-                    VerticalLayout {
-                        spacing: 7px;
-
-                        Text {
-                            font-family: "Inter";
-                            text: "Sobre o aplicativo";
-                            color: Theme.text-main;
-                            font-size: 18px;
-                            font-weight: 750;
-                        }
-
-                        Text {
-                            font-family: "Inter";
-                            text: root.detail-description;
-                            color: Theme.text-muted;
-                            font-size: 15px;
-                            wrap: word-wrap;
-                            height: 48px;
-                            vertical-alignment: top;
-                        }
-                    }
-
-                    HorizontalLayout {
-                        height: 82px;
-                        spacing: 12px;
-
-                        DetailTile {
-                            tile-label: "Versão instalada";
-                            tile-value: root.detail-version;
-                        }
-
-                        DetailTile {
-                            tile-label: "Desenvolvedor";
-                            tile-value: root.detail-developer;
-                        }
-
-                        DetailTile {
-                            tile-label: "Origem";
-                            tile-value: root.detail-source;
-                        }
-                    }
-
-                    Rectangle {
-                        width: 100%;
-                        height: 1px;
-                        background: Theme.separator;
-                    }
-
-                    VerticalLayout {
-                        spacing: 8px;
-
-                        Text {
-                            font-family: "Inter";
-                            text: "Ações";
-                            color: Theme.text-main;
-                            font-size: 17px;
-                            font-weight: 750;
-                        }
-
-                        HorizontalLayout {
-                            height: 44px;
-                            spacing: 10px;
-
-                            if root.detail-installed: ModalAction {
-                                width: 132px;
-                                label: "Abrir";
-                                variant: "primary";
-                                clicked => {
-                                    root.detail-action-message = "Abrir: integração com o backend ainda pendente.";
-                                }
-                            }
-
-                            if root.detail-installed && root.detail-has-update: ModalAction {
-                                width: 138px;
-                                label: "Atualizar";
-                                variant: "secondary";
-                                clicked => {
-                                    root.detail-action-message = "Atualizar: a verificação de versões ainda não está conectada.";
-                                }
-                            }
-
-                            if root.detail-installed: ModalAction {
-                                width: 132px;
-                                label: "Remover";
-                                variant: "danger";
-                                clicked => {
-                                    root.detail-action-message = "Remover: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
-                                }
-                            }
-
-                            if !root.detail-installed: ModalAction {
-                                width: 160px;
-                                label: "Escolher fonte";
-                                variant: "secondary";
-                                clicked => {
-                                    root.detail-action-message = "As fontes disponíveis serão listadas quando a detecção do sistema for integrada.";
-                                }
-                            }
-
-                            if !root.detail-installed: ModalAction {
-                                width: 132px;
-                                label: "Instalar";
-                                variant: "primary";
-                                clicked => {
-                                    root.detail-action-message = "Instalar: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
-                                }
-                            }
-
-                            Rectangle {
-                                horizontal-stretch: 1;
-                                background: #00000000;
-                            }
-
-                            ModalAction {
-                                width: 118px;
-                                label: "Fechar";
-                                variant: "secondary";
-                                clicked => { root.details-open = false; }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: 100%;
-                        height: 42px;
-                        border-radius: 12px;
-                        background: Theme.dark-mode ? #071a30 : #f0f7fc;
-
-                        HorizontalLayout {
-                            padding-left: 12px;
-                            padding-right: 12px;
-                            spacing: 8px;
-                            alignment: center;
-
-                            Text {
-                                font-family: "Inter";
-                                text: "i";
-                                color: Theme.accent;
-                                font-size: 15px;
-                                font-weight: 800;
-                            }
-
-                            Text {
-                                font-family: "Inter";
-                                text: root.detail-action-message;
-                                color: Theme.text-muted;
-                                font-size: 12px;
-                                wrap: word-wrap;
-                                vertical-alignment: center;
-                                horizontal-stretch: 1;
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -993,6 +1083,8 @@ component PlaceholderPage inherits Rectangle {
 
 export component MainWindow inherits Window {
     title: "Gamefic";
+    no-frame: true;
+    resize-border-width: 5px;
     width: 2048px;
     height: 1098px;
     background: Theme.window-bg;
@@ -1008,38 +1100,60 @@ export component MainWindow inherits Window {
         : root.active-navigation == 8 ? "Fontes de instalação"
         : "Histórico e Diagnósticos";
 
-    HorizontalLayout {
+    VerticalLayout {
         width: 100%;
         height: 100%;
         spacing: 0px;
 
-        Sidebar {
-            width: 256px;
-            active-navigation: root.active-navigation;
-            navigation-selected(index) => { root.active-navigation = index; }
+        TitleBar {
+            minimize-requested => { root.minimized = true; }
+            maximize-requested => { root.maximized = !root.maximized; }
+            close-requested => { root.close(); }
         }
 
-        VerticalLayout {
-            horizontal-stretch: 1;
+        HorizontalLayout {
+            height: 100%;
             spacing: 0px;
 
-            TopBar {
-                height: 68px;
-                theme-toggle => { Theme.dark-mode = !Theme.dark-mode; }
-                sources-clicked => { root.active-navigation = 8; }
-                updates-clicked => { root.active-navigation = 7; }
+            Sidebar {
+                width: 256px;
+                active-navigation: root.active-navigation;
+                navigation-selected(index) => { root.active-navigation = index; }
             }
 
-            if root.active-navigation == 0: AppCatalogPage {
-                vertical-stretch: 1;
-                selected-app: root.selected-app;
-                app-selected(name) => { root.selected-app = name; }
-            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 0px;
 
-            if root.active-navigation != 0: PlaceholderPage {
-                vertical-stretch: 1;
-                page-title: root.page-title;
+                TopBar {
+                    height: 68px;
+                    theme-toggle => { Theme.dark-mode = !Theme.dark-mode; }
+                    sources-clicked => { root.active-navigation = 8; }
+                    updates-clicked => { root.active-navigation = 7; }
+                }
             }
         }
+    }
+
+    if root.active-navigation == 0: AppCatalogPage {
+        x: 256px;
+        y: 110px;
+        width: parent.width - 256px;
+        height: parent.height - 110px;
+        selected-app: root.selected-app;
+        app-selected(name) => { root.selected-app = name; }
+    }
+
+    if root.active-navigation != 0: PlaceholderPage {
+        x: 256px;
+        y: 110px;
+        width: parent.width - 256px;
+        height: parent.height - 110px;
+        page-title: root.page-title;
+    }
+
+    if CatalogModal.open: DetailsDialog {
+        width: parent.width;
+        height: parent.height;
     }
 }
