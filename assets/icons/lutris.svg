@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-<defs><linearGradient id="lutris" x1="13" y1="13" x2="110" y2="112" gradientUnits="userSpaceOnUse"><stop stop-color="#35dce9"/><stop offset=".55" stop-color="#118fc8"/><stop offset="1" stop-color="#07558e"/></linearGradient></defs>
-<circle cx="64" cy="64" r="60" fill="url(#lutris)"/>
-<path d="M93 31c-12-13-34-17-51-7-16 9-25 26-24 44 1 20 16 37 36 42 17 4 34-2 46-15" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
-<path d="M75 19 101 31 88 56" fill="none" stroke="#eaffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M35 42c-6 13-3 29 8 38 8 7 18 9 28 6" fill="none" stroke="#bffaff" stroke-width="5" stroke-linecap="round" opacity=".75"/>
-</svg>

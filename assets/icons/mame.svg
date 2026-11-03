@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-<defs><linearGradient id="mame" x1="10" y1="32" x2="116" y2="91" gradientUnits="userSpaceOnUse"><stop stop-color="#38e5ee"/><stop offset=".55" stop-color="#1199d3"/><stop offset="1" stop-color="#1553a7"/></linearGradient></defs>
-<path d="M7 83 29 37h18L25 83z" fill="url(#mame)"/>
-<path d="M34 83 56 37h18L52 83z" fill="url(#mame)" opacity=".92"/>
-<path d="M61 83 83 37h18L79 83z" fill="url(#mame)" opacity=".84"/>
-<path d="M88 83 110 37h12L100 83z" fill="url(#mame)" opacity=".72"/>
-<path d="M8 96h107" stroke="#9ceff5" stroke-width="4" stroke-linecap="round" opacity=".48"/>
-</svg>

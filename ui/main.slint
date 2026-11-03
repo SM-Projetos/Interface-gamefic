@@ -182,6 +182,29 @@ component TitleBar inherits Rectangle {
     }
 
     Rectangle {
+        x: parent.width - 176px;
+        y: (parent.height - 30px) / 2;
+        width: 34px;
+        height: 30px;
+        border-radius: 8px;
+        background: settings-touch.has-hover ? Theme.nav-hover : #00000000;
+
+        Image {
+            source: @image-url("../assets/icons/settings.svg");
+            width: 20px;
+            height: 20px;
+            image-fit: contain;
+            colorize: Theme.text-main;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+        }
+
+        settings-touch := TouchArea {
+            clicked => { Theme.dark-mode = !Theme.dark-mode; }
+        }
+    }
+
+    Rectangle {
         x: parent.width - 142px;
         y: (parent.height - 30px) / 2;
         width: 134px;
@@ -334,125 +357,6 @@ component Sidebar inherits Rectangle {
         x: parent.width - 1px;
         width: 1px;
         height: parent.height;
-        background: Theme.separator;
-    }
-}
-
-component TopBar inherits Rectangle {
-    callback theme-toggle();
-    callback sources-clicked();
-    callback updates-clicked();
-
-    background: Theme.topbar-bg;
-
-    HorizontalLayout {
-        padding-left: 40px;
-        padding-right: 30px;
-        spacing: 14px;
-        alignment: center;
-
-        Text {
-
-
-            font-family: "Inter";
-            text: "Gamefic";
-            color: Theme.text-main;
-            font-size: 24px;
-            font-weight: 750;
-            vertical-alignment: center;
-        }
-
-        Rectangle {
-            horizontal-stretch: 1;
-            background: #00000000;
-        }
-
-        Rectangle {
-            width: 174px;
-            height: 40px;
-            border-radius: 20px;
-            background: sources-touch.has-hover ? Theme.accent : Theme.accent-deep;
-            HorizontalLayout {
-                padding-left: 15px;
-                padding-right: 15px;
-                spacing: 8px;
-                alignment: center;
-                Image {
-                    source: @image-url("../assets/icons/chevron-down.svg");
-                    width: 14px;
-                    height: 14px;
-                    image-fit: contain;
-                }
-                Text {
-
-                    font-family: "Inter";
-                    text: "Fontes disponíveis";
-                    color: #ffffff;
-                    font-size: 13px;
-                    font-weight: 650;
-                    vertical-alignment: center;
-                }
-            }
-            sources-touch := TouchArea {
-                clicked => { root.sources-clicked(); }
-            }
-        }
-
-        Rectangle {
-            width: 150px;
-            height: 40px;
-            border-radius: 20px;
-            border-width: 1px;
-            border-color: Theme.separator;
-            background: updates-touch.has-hover ? Theme.nav-hover : (Theme.dark-mode ? #07192e : #ffffff);
-            HorizontalLayout {
-                padding-left: 15px;
-                padding-right: 13px;
-                spacing: 9px;
-                alignment: center;
-                Text {
-
-                    font-family: "Inter";
-                    text: "Atualizações";
-                    color: Theme.text-main;
-                    font-size: 14px;
-                    font-weight: 600;
-                }
-                Image {
-                    source: @image-url("../assets/icons/chevron-down.svg");
-                    width: 13px;
-                    height: 13px;
-                    image-fit: contain;
-                    colorize: Theme.text-muted;
-                }
-            }
-            updates-touch := TouchArea {
-                clicked => { root.updates-clicked(); }
-            }
-        }
-
-        Rectangle {
-            width: 42px;
-            height: 42px;
-            border-radius: 21px;
-            background: settings-touch.has-hover ? Theme.nav-hover : #00000000;
-            Image {
-                source: @image-url("../assets/icons/settings.svg");
-                width: 25px;
-                height: 25px;
-                image-fit: contain;
-                colorize: Theme.text-main;
-            }
-            settings-touch := TouchArea {
-                clicked => { root.theme-toggle(); }
-            }
-        }
-    }
-
-    Rectangle {
-        y: parent.height - 1px;
-        width: parent.width;
-        height: 1px;
         background: Theme.separator;
     }
 }
@@ -978,14 +882,14 @@ component AppCatalogPage inherits Rectangle {
     ScrollView {
         width: 100%;
         height: 100%;
-        content-height: 1200px;
+        content-height: 2000px;
         vertical-scrollbar-policy: as-needed;
         horizontal-scrollbar-policy: always-off;
         mouse-drag-pan-enabled: true;
 
         VerticalLayout {
             width: 100%;
-            height: 1200px;
+            height: 2000px;
             padding-left: 40px;
             padding-right: 56px;
             padding-top: 36px;
@@ -1007,7 +911,7 @@ component AppCatalogPage inherits Rectangle {
                 Text {
 
                     font-family: "Inter";
-                    text: "Descubra, organize e gerencie seus aplicativos para jogos e criação.";
+                    text: "Gerencie e instale aplicativos essenciais para jogos no Linux, incluindo launchers, emuladores e ferramentas para aprimorar sua experiência gamer.";
                     color: Theme.text-muted;
                     font-size: 16px;
                     height: 25px;
@@ -1019,12 +923,12 @@ component AppCatalogPage inherits Rectangle {
                 category-title: "Launchers";
                 selected-app: root.selected-app;
                 apps: [
-                    { name: "Steam", description: "Loja e plataforma de jogos para PC.", icon: @image-url("../assets/icons/steam.svg"), version: "Não detectada", developer: "Valve", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Lutris", description: "Gerenciador de jogos e plataformas.", icon: @image-url("../assets/icons/lutris.svg"), version: "Não detectada", developer: "Lutris Team", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Heroic Games Launcher", description: "Cliente para Epic Games, GOG e Amazon.", icon: @image-url("../assets/icons/heroic.svg"), version: "Não detectada", developer: "Heroic Games Launcher Team", source: "Não consultada", has_update: false, installed: true },
-                    { name: "itch.io", description: "Cliente para jogos independentes.", icon: @image-url("../assets/icons/itch.svg"), version: "Não detectada", developer: "itch corp.", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Minigalaxy", description: "Cliente leve para jogos da GOG.", icon: @image-url("../assets/icons/minigalaxy.svg"), version: "Não detectada", developer: "Minigalaxy contributors", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Bottles", description: "Gerencie ambientes para executar apps e jogos.", icon: @image-url("../assets/icons/bottles.svg"), version: "Não detectada", developer: "Bottles Team", source: "Não consultada", has_update: false, installed: true }
+                    { name: "Steam", description: "Loja e cliente de jogos da Valve", icon: @image-url("../assets/apps/steam.png"), version: "Não detectada", developer: "Valve Corporation", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Lutris", description: "Gerenciador de jogos Wine/Proton", icon: @image-url("../assets/apps/lutris.svg"), version: "Não detectada", developer: "Comunidade Lutris", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Heroic Games Launcher", description: "Launcher da Epic, GOG e Amazon", icon: @image-url("../assets/apps/heroic.png"), version: "Não detectada", developer: "Heroic Games Launcher (comunidade)", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Bottles", description: "Gerenciador moderno de prefixos Wine", icon: @image-url("../assets/apps/bottles.svg"), version: "Não detectada", developer: "Bottles Developers", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Itch", description: "Loja indie da itch.io", icon: @image-url("../assets/apps/itch.png"), version: "Não detectada", developer: "itch.io (Leaf Corcoran)", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Minigalaxy", description: "Cliente GOG simples", icon: @image-url("../assets/apps/minigalaxy.png"), version: "Não detectada", developer: "Comunidade Minigalaxy", source: "Não consultada", has_update: false, installed: true }
                 ];
                 app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
                     CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
@@ -1036,14 +940,147 @@ component AppCatalogPage inherits Rectangle {
                 category-title: "Emuladores";
                 selected-app: root.selected-app;
                 apps: [
-                    { name: "RetroArch", description: "Interface unificada para emuladores.", icon: @image-url("../assets/icons/retroarch.svg"), version: "Não detectada", developer: "Libretro", source: "Não consultada", has_update: false, installed: true },
-                    { name: "Dolphin", description: "Emulador de GameCube e Wii.", icon: @image-url("../assets/icons/dolphin.svg"), version: "Não detectada", developer: "Dolphin Emulator Project", source: "Não consultada", has_update: false, installed: false },
-                    { name: "PCSX2", description: "Emulador de PlayStation 2.", icon: @image-url("../assets/icons/pcsx2.svg"), version: "Não detectada", developer: "PCSX2 Team", source: "Não consultada", has_update: false, installed: false },
-                    { name: "RPCS3", description: "Emulador de PlayStation 3.", icon: @image-url("../assets/icons/rpcs3.svg"), version: "Não detectada", developer: "RPCS3 Team", source: "Não consultada", has_update: false, installed: true },
-                    { name: "PPSSPP", description: "Emulador de PSP.", icon: @image-url("../assets/icons/ppsspp.svg"), version: "Não detectada", developer: "PPSSPP Team", source: "Não consultada", has_update: false, installed: true },
-                    { name: "DuckStation", description: "Emulador de PlayStation 1.", icon: @image-url("../assets/icons/duckstation.svg"), version: "Não detectada", developer: "DuckStation contributors", source: "Não consultada", has_update: false, installed: false },
-                    { name: "mGBA", description: "Emulador de Game Boy Advance.", icon: @image-url("../assets/icons/mgba.svg"), version: "Não detectada", developer: "mGBA Team", source: "Não consultada", has_update: false, installed: true },
-                    { name: "MAME", description: "Emulador de máquinas de arcade.", icon: @image-url("../assets/icons/mame.svg"), version: "Não detectada", developer: "MAME Team", source: "Não consultada", has_update: false, installed: true }
+                    { name: "RetroArch", description: "Frontend de emuladores (Libretro)", icon: @image-url("../assets/apps/retroarch.svg"), version: "Não detectada", developer: "Libretro", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Dolphin", description: "GameCube e Wii", icon: @image-url("../assets/apps/dolphin.svg"), version: "Não detectada", developer: "Dolphin Emulator Team", source: "Não consultada", has_update: false, installed: false },
+                    { name: "PCSX2", description: "PlayStation 2", icon: @image-url("../assets/apps/pcsx2.png"), version: "Não detectada", developer: "PCSX2 Development Team", source: "Não consultada", has_update: false, installed: false },
+                    { name: "RPCS3", description: "PlayStation 3", icon: @image-url("../assets/apps/rpcs3.png"), version: "Não detectada", developer: "RPCS3 Team", source: "Não consultada", has_update: false, installed: true },
+                    { name: "PPSSPP", description: "PlayStation Portable (PSP)", icon: @image-url("../assets/apps/ppsspp.png"), version: "Não detectada", developer: "Henrik Rydgård", source: "Não consultada", has_update: false, installed: true },
+                    { name: "DuckStation", description: "PlayStation 1", icon: @image-url("../assets/apps/duck.png"), version: "Não detectada", developer: "Stenzek", source: "Não consultada", has_update: false, installed: false },
+                    { name: "mGBA", description: "Game Boy Advance", icon: @image-url("../assets/apps/mgba.png"), version: "Não detectada", developer: "Jeffrey Pfau", source: "Não consultada", has_update: false, installed: true },
+                    { name: "MAME", description: "Jogos de arcade (multi-sistemas)", icon: @image-url("../assets/apps/mame.svg"), version: "Não detectada", developer: "MAMEdev", source: "Não consultada", has_update: false, installed: true }
+                ];
+                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
+                    root.app-selected(name);
+                }
+            }
+
+            AppCategory {
+                category-title: "Ferramentas de jogos";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "GameMode", description: "Daemon de otimização para jogos", icon: @image-url("../assets/apps/gamemode.png"), version: "Não detectada", developer: "Feral Interactive", source: "Não consultada", has_update: false, installed: true },
+                    { name: "MangoHud", description: "Overlay de desempenho em jogos", icon: @image-url("../assets/apps/mangohud.svg"), version: "Não detectada", developer: "Comunidade MangoHud", source: "Não consultada", has_update: false, installed: true },
+                    { name: "Gamescope", description: "Compositor de sessão de jogos", icon: @image-url("../assets/apps/gamescope.png"), version: "Não detectada", developer: "Valve Corporation", source: "Não consultada", has_update: false, installed: false },
+                    { name: "LACT", description: "Controle de GPU e ventoinhas", icon: @image-url("../assets/apps/lact.png"), version: "Não detectada", developer: "Ilya Zlobintsev", source: "Não consultada", has_update: false, installed: true },
+                    { name: "GOverlay", description: "Configurador gráfico do MangoHud", icon: @image-url("../assets/apps/goverlay.svg"), version: "Não detectada", developer: "Benjami Gois / comunidade", source: "Não consultada", has_update: false, installed: false },
+                    { name: "OpenRGB", description: "Controle de iluminação RGB", icon: @image-url("../assets/apps/openrgb.png"), version: "Não detectada", developer: "Comunidade OpenRGB", source: "Não consultada", has_update: false, installed: false },
+                    { name: "Oversteer", description: "Gerente de volantes de corrida", icon: @image-url("../assets/apps/oversteer.png"), version: "Não detectada", developer: "Bernat Arlandis", source: "Não consultada", has_update: false, installed: false }
+                ];
+                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
+                    root.app-selected(name);
+                }
+            }
+
+            AppCategory {
+                category-title: "Compatibilidade";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "Wine", description: "Camada de compatibilidade Windows", icon: @image-url("../assets/apps/wine.svg"), version: "Não detectada", developer: "WineHQ", source: "Não consultada", has_update: false, installed: true }
+                ];
+                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
+                    root.app-selected(name);
+                }
+            }
+        }
+    }
+}
+
+// Aba Criação de Conteúdo: catálogo de ferramentas de gravação, edição,
+// áudio e comunicação — reutiliza AppCategory/AppCard e o modal global.
+component ContentPage inherits Rectangle {
+    in-out property <string> selected-app: "OBS Studio";
+    callback app-selected(string);
+
+    background: Theme.page-bg;
+
+    ScrollView {
+        width: 100%;
+        height: 100%;
+        content-height: 1300px;
+        vertical-scrollbar-policy: as-needed;
+        horizontal-scrollbar-policy: always-off;
+        mouse-drag-pan-enabled: true;
+
+        VerticalLayout {
+            width: 100%;
+            height: 1300px;
+            padding-left: 40px;
+            padding-right: 56px;
+            padding-top: 36px;
+            padding-bottom: 38px;
+            spacing: 28px;
+
+            VerticalLayout {
+                spacing: 8px;
+                height: 78px;
+                Text {
+
+                    font-family: "Inter";
+                    text: "Criação de Conteúdo";
+                    color: Theme.text-main;
+                    font-size: 36px;
+                    font-weight: 800;
+                    height: 43px;
+                }
+                Text {
+
+                    font-family: "Inter";
+                    text: "Ferramentas para gravação de gameplay, transmissão ao vivo, edição de vídeos, captura de tela e produção de áudio.";
+                    color: Theme.text-muted;
+                    font-size: 16px;
+                    height: 25px;
+                    vertical-alignment: center;
+                }
+            }
+
+            AppCategory {
+                category-title: "Gravação e Stream";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "OBS Studio", description: "Gravação e streaming", icon: @image-url("../assets/apps/obs.png"), version: "Não detectada", developer: "OBS Project", source: "Não consultada", has_update: false, installed: true },
+                    { name: "GPU Screen Recorder", description: "Gravação de gameplay", icon: @image-url("../assets/apps/gpu-screen-recorder.png"), version: "Não detectada", developer: "dec05eba", source: "Não consultada", has_update: false, installed: false }
+                ];
+                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
+                    root.app-selected(name);
+                }
+            }
+
+            AppCategory {
+                category-title: "Vídeo";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "Kdenlive", description: "Edição de vídeo", icon: @image-url("../assets/apps/kdenlive.png"), version: "Não detectada", developer: "KDE", source: "Não consultada", has_update: false, installed: true },
+                    { name: "LosslessCut", description: "Cortes rápidos", icon: @image-url("../assets/apps/losslesscut.png"), version: "Não detectada", developer: "Mifi", source: "Não consultada", has_update: false, installed: false }
+                ];
+                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
+                    root.app-selected(name);
+                }
+            }
+
+            AppCategory {
+                category-title: "Áudio";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "Audacity", description: "Edição de áudio", icon: @image-url("../assets/apps/audacity.png"), version: "Não detectada", developer: "Muse Group", source: "Não consultada", has_update: false, installed: true },
+                    { name: "EasyEffects", description: "Processamento de áudio", icon: @image-url("../assets/apps/easyeffects.png"), version: "Não detectada", developer: "Comunidade EasyEffects", source: "Não consultada", has_update: false, installed: true }
+                ];
+                app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
+                    CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
+                    root.app-selected(name);
+                }
+            }
+
+            AppCategory {
+                category-title: "Social";
+                selected-app: root.selected-app;
+                apps: [
+                    { name: "Discord", description: "Voz e chat para comunidades", icon: @image-url("../assets/apps/discord.png"), version: "Não detectada", developer: "Discord Inc.", source: "Não consultada", has_update: false, installed: true },
+                    { name: "TeamSpeak 3", description: "Voz de baixa latência para jogos", icon: @image-url("../assets/apps/teamspeak.png"), version: "Não detectada", developer: "TeamSpeak Systems", source: "Não consultada", has_update: false, installed: false }
                 ];
                 app-selected(name, description, icon, installed, category, version, developer, source, has-update) => {
                     CatalogModal.open-details(name, description, icon, installed, category, version, developer, source, has-update);
@@ -1087,73 +1124,80 @@ export component MainWindow inherits Window {
     resize-border-width: 5px;
     width: 2048px;
     height: 1098px;
-    background: Theme.window-bg;
+    background: transparent;
 
     in-out property <int> active-navigation: 0;
     in-out property <string> selected-app: "Steam";
-    property <string> page-title: root.active-navigation == 1 ? "Criação de Conteúdo"
-        : root.active-navigation == 2 ? "Monitorado"
+    property <string> page-title: root.active-navigation == 2 ? "Monitorado"
         : root.active-navigation == 3 ? "Kernels e Drivers"
         : root.active-navigation == 4 ? "Otimização"
         : root.active-navigation == 5 ? "Overlay"
-        : root.active-navigation == 7 ? "Atualizações"
-        : root.active-navigation == 8 ? "Fontes de instalação"
         : "Histórico e Diagnósticos";
 
-    VerticalLayout {
-        width: 100%;
-        height: 100%;
-        spacing: 0px;
+    // Contêiner com cantos arredondados: com a janela sem moldura e fundo
+    // transparente, todo o conteúdo fica dentro deste retângulo com clip,
+    // conferindo cantos arredondados à janela e à barra lateral.
+    shape := Rectangle {
+        border-radius: 18px;
+        clip: true;
 
-        TitleBar {
-            minimize-requested => { root.minimized = true; }
-            maximize-requested => { root.maximized = !root.maximized; }
-            close-requested => { root.close(); }
-        }
-
-        HorizontalLayout {
+        VerticalLayout {
+            width: 100%;
             height: 100%;
             spacing: 0px;
 
-            Sidebar {
-                width: 256px;
-                active-navigation: root.active-navigation;
-                navigation-selected(index) => { root.active-navigation = index; }
+            TitleBar {
+                minimize-requested => { root.minimized = true; }
+                maximize-requested => { root.maximized = !root.maximized; }
+                close-requested => { root.close(); }
             }
 
-            VerticalLayout {
-                horizontal-stretch: 1;
+            HorizontalLayout {
+                height: 100%;
                 spacing: 0px;
 
-                TopBar {
-                    height: 68px;
-                    theme-toggle => { Theme.dark-mode = !Theme.dark-mode; }
-                    sources-clicked => { root.active-navigation = 8; }
-                    updates-clicked => { root.active-navigation = 7; }
+                Sidebar {
+                    width: 256px;
+                    active-navigation: root.active-navigation;
+                    navigation-selected(index) => { root.active-navigation = index; }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: Theme.page-bg;
                 }
             }
         }
-    }
 
-    if root.active-navigation == 0: AppCatalogPage {
-        x: 256px;
-        y: 110px;
-        width: parent.width - 256px;
-        height: parent.height - 110px;
-        selected-app: root.selected-app;
-        app-selected(name) => { root.selected-app = name; }
-    }
+        if root.active-navigation == 0: AppCatalogPage {
+            x: 256px;
+            y: 42px;
+            width: parent.width - 256px;
+            height: parent.height - 42px;
+            selected-app: root.selected-app;
+            app-selected(name) => { root.selected-app = name; }
+        }
 
-    if root.active-navigation != 0: PlaceholderPage {
-        x: 256px;
-        y: 110px;
-        width: parent.width - 256px;
-        height: parent.height - 110px;
-        page-title: root.page-title;
-    }
+        if root.active-navigation == 1: ContentPage {
+            x: 256px;
+            y: 42px;
+            width: parent.width - 256px;
+            height: parent.height - 42px;
+            selected-app: root.selected-app;
+            app-selected(name) => { root.selected-app = name; }
+        }
 
-    if CatalogModal.open: DetailsDialog {
-        width: parent.width;
-        height: parent.height;
+        if root.active-navigation >= 2: PlaceholderPage {
+            x: 256px;
+            y: 42px;
+            width: parent.width - 256px;
+            height: parent.height - 42px;
+            page-title: root.page-title;
+        }
+
+        if CatalogModal.open: DetailsDialog {
+            width: parent.width;
+            height: parent.height;
+        }
     }
 }

@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-<defs><linearGradient id="pcblue" x1="15" y1="20" x2="108" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#5be7f0"/><stop offset=".52" stop-color="#168ec8"/><stop offset="1" stop-color="#164c9a"/></linearGradient></defs>
-<path d="M64 4 124 64 64 124 4 64z" fill="url(#pcblue)"/>
-<path d="M64 4v120L4 64z" fill="#0e78bc" opacity=".56"/>
-<path d="m64 20 44 44-44 44-44-44z" fill="#092f68" opacity=".82"/>
-<path d="m64 34 30 30-30 30-30-30z" fill="#32d1e2"/>
-<path d="m52 51 12-8 12 8-5 27H57z" fill="#efffff"/>
-<path d="m64 43v48" stroke="#fff" stroke-width="3" opacity=".72"/>
-</svg>

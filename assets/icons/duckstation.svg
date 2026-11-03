@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-<defs><linearGradient id="duckTop" x1="22" y1="16" x2="102" y2="65" gradientUnits="userSpaceOnUse"><stop stop-color="#bcf5ff"/><stop offset="1" stop-color="#45bde7"/></linearGradient><linearGradient id="duckSide" x1="65" y1="34" x2="112" y2="115" gradientUnits="userSpaceOnUse"><stop stop-color="#1689c8"/><stop offset="1" stop-color="#064d91"/></linearGradient></defs>
-<path d="m64 6 48 27-48 28-48-28z" fill="url(#duckTop)"/>
-<path d="M16 33 64 61v57L16 91z" fill="#168acb"/>
-<path d="m112 33-48 28v57l48-27z" fill="url(#duckSide)"/>
-<path d="m64 61 48-28v25L64 86z" fill="#56cce9" opacity=".92"/>
-<path d="m16 33 48 28v25L16 58z" fill="#0a70b4" opacity=".9"/>
-<path d="m64 6 48 27-48 28-48-28z" fill="none" stroke="#d4f9ff" stroke-width="3" stroke-linejoin="round"/>
-</svg>
