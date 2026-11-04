@@ -4,6 +4,8 @@
 //! consulta o sistema real (pacotes nativos, flatpaks e binários) e os
 //! modelos da UI são atualizados somente pela event loop do Slint
 //! (`upgrade_in_event_loop`), como no app nativo do repositório Gamefic.
+//! As ações de abrir/instalar/remover/atualizar e a listagem de fontes
+//! também rodam fora da thread da interface, com guarda de concorrência.
 
 mod system;
 
@@ -53,20 +55,18 @@ fn modelo(lines: Vec<AppInfo>) -> ModelRc<AppInfo> {
     Rc::new(VecModel::from(lines)).into()
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Backend Winit explícito e identidade de app estável no desktop
-    // (Wayland/X11), igual ao app nativo do repositório.
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .select()?;
-    slint::set_xdg_app_id("com.sergio.gamefic")?;
+/// mensagem de ação na caixa de informação do modal de detalhes
+fn mensagem(weak: &slint::Weak<MainWindow>, texto: String) {
+    let _ = weak.upgrade_in_event_loop(move |ui| {
+        ui.global::<CatalogData>().set_acao_mensagem(texto.into());
+    });
+}
 
-    let ui = MainWindow::new()?;
-
-    // A detecção consulta dezenas de programas do sistema: fora da thread
-    // da interface, com nomes de modelo aplicados só pela event loop.
-    let weak = ui.as_weak();
-    std::thread::Builder::new()
+/// detecção completa em thread de fundo; o resultado (modelos, status e o
+/// modal de detalhes aberto, se houver) é aplicado pela event loop
+fn detectar(weak: slint::Weak<MainWindow>) {
+    // a thread falha só quando o processo está terminando; join_id não é usado
+    let _ = std::thread::Builder::new()
         .name("gamefic-system-detection".to_string())
         .spawn(move || {
             let snap = system::snapshot();
@@ -86,18 +86,170 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let _ = weak.upgrade_in_event_loop(move |ui| {
                 let catalog = ui.global::<CatalogData>();
-                catalog.set_launchers(modelo(launchers));
-                catalog.set_emuladores(modelo(emuladores));
-                catalog.set_tools(modelo(tools));
-                catalog.set_compatibilidade(modelo(compatibilidade));
-                catalog.set_criacao_gravacao(modelo(gravacao));
-                catalog.set_criacao_video(modelo(video));
-                catalog.set_criacao_audio(modelo(audio));
-                catalog.set_criacao_social(modelo(social));
+                catalog.set_launchers(modelo(launchers.clone()));
+                catalog.set_emuladores(modelo(emuladores.clone()));
+                catalog.set_tools(modelo(tools.clone()));
+                catalog.set_compatibilidade(modelo(compatibilidade.clone()));
+                catalog.set_criacao_gravacao(modelo(gravacao.clone()));
+                catalog.set_criacao_video(modelo(video.clone()));
+                catalog.set_criacao_audio(modelo(audio.clone()));
+                catalog.set_criacao_social(modelo(social.clone()));
                 catalog.set_status(status);
                 catalog.set_loaded(true);
+
+                // modal aberto na hora da re-detecção: campos sincronizam
+                // com o estado real recém-consultado (nada fica congelado)
+                let modal = ui.global::<CatalogModal>();
+                if modal.get_open() {
+                    let alvo = modal.get_app_id().to_string();
+                    if let Some(a) = launchers
+                        .iter()
+                        .chain(emuladores.iter())
+                        .chain(tools.iter())
+                        .chain(compatibilidade.iter())
+                        .chain(gravacao.iter())
+                        .chain(video.iter())
+                        .chain(audio.iter())
+                        .chain(social.iter())
+                        .find(|a| a.id.as_str() == alvo)
+                    {
+                        modal.set_estado(a.estado.clone());
+                        modal.set_version(a.version.clone());
+                        modal.set_source(a.source.clone());
+                    }
+                }
             });
-        })?;
+        });
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Backend Winit explícito e identidade de app estável no desktop
+    // (Wayland/X11), igual ao app nativo do repositório.
+    slint::BackendSelector::new()
+        .backend_name("winit".into())
+        .select()?;
+    slint::set_xdg_app_id("com.sergio.gamefic")?;
+
+    let ui = MainWindow::new()?;
+
+    // guarda de concorrência: uma ação de sistema por vez (instalar/remover/
+    // atualizar consultam e mudam o estado real; duas em paralelo se
+    // contradiriam nas validações)
+    let ocupado = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+    let catalog = ui.global::<CatalogData>();
+    catalog.on_abrir_app({
+        let weak = ui.as_weak();
+        move |id| {
+            let weak = weak.clone();
+            std::thread::Builder::new()
+                .name("gamefic-abrir".to_string())
+                .spawn(move || {
+                    let resultado = system::install::abrir_launcher(id.as_str(), false);
+                    mensagem(&weak, match resultado {
+                        Ok(msg) => msg,
+                        Err(e) => format!("Não foi possível abrir: {e}"),
+                    });
+                })
+                .expect("thread abrir");
+        }
+    });
+
+    catalog.on_acao_app({
+        let weak = ui.as_weak();
+        let ocupado = ocupado.clone();
+        move |id, acao| {
+            let weak = weak.clone();
+            let ocupado = ocupado.clone();
+            std::thread::Builder::new()
+                .name("gamefic-acao".to_string())
+                .spawn(move || {
+                    let id = id.to_string();
+                    let acao = acao.to_string();
+                    if ocupado
+                        .compare_exchange(
+                            false,
+                            true,
+                            std::sync::atomic::Ordering::SeqCst,
+                            std::sync::atomic::Ordering::SeqCst,
+                        )
+                        .is_err()
+                    {
+                        return mensagem(&weak, "Já existe uma operação em andamento — aguarde a conclusão.".into());
+                    }
+                    let livre = || {
+                        ocupado.store(false, std::sync::atomic::Ordering::SeqCst);
+                    };
+                    match system::install::fonte_padrao(&id, &acao) {
+                        None => {
+                            livre();
+                            mensagem(&weak, format!("Nenhuma fonte atende a '{acao}' para este aplicativo — confira o estado e a fonte com 'Escolher fonte'."));
+                        }
+                        Some(fonte) => {
+                            mensagem(&weak, format!("Executando {acao} via {fonte}… a elevação usa pkexec e pode pedir sua senha."));
+                            match system::install::acao_app(&id, &acao, &fonte) {
+                                Ok(msg) => {
+                                    livre();
+                                    // re-detecção completa, com estados reais pós-operação
+                                    detectar(weak.clone());
+                                    mensagem(&weak, format!("Última ação: {msg} via {fonte}."));
+                                }
+                                Err(e) => {
+                                    livre();
+                                    mensagem(&weak, format!("Falha em '{acao}' via {fonte}: {e}"));
+                                }
+                            }
+                        }
+                    }
+                })
+                .expect("thread ação");
+        }
+    });
+
+    catalog.on_fontes_app({
+        let weak = ui.as_weak();
+        move |id| {
+            let weak = weak.clone();
+            std::thread::Builder::new()
+                .name("gamefic-fontes".to_string())
+                .spawn(move || {
+                    let id = id.to_string();
+                    let fontes = system::install::fontes(&id);
+                    let texto = if fontes.is_empty() {
+                        "Nenhuma fonte conhecida para este aplicativo no catálogo.".to_string()
+                    } else {
+                        let mut linhas = Vec::new();
+                        for f in &fontes {
+                            let estado_fonte = if f.instalado {
+                                "instalado".to_string()
+                            } else if f.disponivel {
+                                "disponível".to_string()
+                            } else if f.indeterminado {
+                                "indeterminado".to_string()
+                            } else {
+                                "indisponível".to_string()
+                            };
+                            let detalhe = match (&f.versao, &f.motivo) {
+                                (Some(v), Some(m)) => format!("v{v}; {m}"),
+                                (Some(v), None) => format!("v{v}"),
+                                (None, Some(m)) => m.clone(),
+                                (None, None) => String::new(),
+                            };
+                            linhas.push(if detalhe.is_empty() {
+                                format!("• {} — {estado_fonte}", f.fonte)
+                            } else {
+                                format!("• {} — {estado_fonte} ({detalhe})", f.fonte)
+                            });
+                        }
+                        format!("Fontes reais detectadas: {}", linhas.join("  |  "))
+                    };
+                    mensagem(&weak, texto);
+                })
+                .expect("thread fontes");
+        }
+    });
+
+    detectar(ui.as_weak());
 
     ui.run()?;
     Ok(())

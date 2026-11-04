@@ -2,17 +2,22 @@
 //! Gamefic (branch gamefic-slint), Rust puro: sem Tauri, sem serde, sem
 //! dados sintéticos.
 //!
-//! Neste slice (backend da aba Apps — detecção/catálogo real):
+//! Neste slice (ações da aba Apps):
 //! - `appinfo`: REGISTRY completo (ids confiáveis por aplicativo);
-//! - `pkgmgr`: gerenciador nativo da família detectada e consultas reais;
+//! - `pkgmgr`: gerenciador nativo da família detectada, consultas reais e
+//!   instalar/remover via pkexec;
 //! - `tools`: catálogo por categoria + estado de instalação (§2.2 —
 //!   sem confirmação, o estado é "desconhecido");
+//! - `install`: listagem real de fontes, instalar/remover/atualizar,
+//!   abrir launcher e resolução de fonte padrão;
+//! - `steam`: protons localizados do Steam (consumo futuro do install);
 //! - `os`/`spawn`: base de distribuição e execução consciente de sandbox.
 //!
-//! Fora do escopo por ora (slices seguintes): monitoramento e as ações de
-//! instalar/remover/abrir (install.rs).
+//! Fora do escopo por ora (slices seguintes): monitoramento, verificação
+//! de versões remotas/has_update (rede) e ativação de MangoHud no abrir.
 
 pub mod appinfo;
+pub mod install;
 pub mod os;
 pub mod pkgmgr;
 pub mod spawn;

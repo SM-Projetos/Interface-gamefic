@@ -67,11 +67,16 @@ export global CatalogData {
     in-out property <bool> loaded: false;
     in-out property <string> status;
     in-out property <string> distro-name;
+    // mensagem de resultado das ações da aba Apps, escrita pelo backend
+    in-out property <string> acao-mensagem;
+    callback abrir-app(string);
+    callback acao-app(string, string);
+    callback fontes-app(string);
 }
 
 // Estado compartilhado da janela de detalhes do catálogo: vive em escopo global
 // para que o modal seja renderizado na MainWindow, centrado sobre a janela toda.
-global CatalogModal {
+export global CatalogModal {
     in-out property <bool> open: false;
     in-out property <string> app-id;
     in-out property <string> name;
@@ -82,7 +87,6 @@ global CatalogModal {
     in-out property <string> developer;
     in-out property <string> source;
     in-out property <bool> has-update;
-    in-out property <string> action-message: "Ações demonstrativas: o backend ainda não está conectado.";
 
     // Abre a janela de detalhes com o contexto do cartão selecionado.
     public function open-from-app(app: AppInfo, app-category: string) {
@@ -95,7 +99,7 @@ global CatalogModal {
         self.developer = app.developer;
         self.source = app.source;
         self.has-update = app.has_update;
-        self.action-message = "Estados vêm da detecção do sistema em tempo real. Ações de abrir/instalar/remover chegam com o próximo passo do backend.";
+        CatalogData.acao-mensagem = "Aplicativo: " + app.name + ". Ações executam no sistema real; a instalação pode pedir sua senha via pkexec.";
         self.open = true;
     }
 }
@@ -999,7 +1003,7 @@ component DetailsDialog inherits Rectangle {
                             label: "Abrir";
                             variant: "primary";
                             clicked => {
-                                CatalogModal.action-message = "Abrir: integração com o backend ainda pendente.";
+                                CatalogData.abrir-app(CatalogModal.app-id);
                             }
                         }
 
@@ -1008,7 +1012,7 @@ component DetailsDialog inherits Rectangle {
                             label: "Atualizar";
                             variant: "secondary";
                             clicked => {
-                                CatalogModal.action-message = "Atualizar: a verificação de versões ainda não está conectada.";
+                                CatalogData.acao-app(CatalogModal.app-id, "atualizar");
                             }
                         }
 
@@ -1017,7 +1021,7 @@ component DetailsDialog inherits Rectangle {
                             label: "Remover";
                             variant: "danger";
                             clicked => {
-                                CatalogModal.action-message = "Remover: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
+                                CatalogData.acao-app(CatalogModal.app-id, "remover");
                             }
                         }
 
@@ -1026,7 +1030,7 @@ component DetailsDialog inherits Rectangle {
                             label: "Escolher fonte";
                             variant: "secondary";
                             clicked => {
-                                CatalogModal.action-message = "As fontes disponíveis serão listadas quando a consulta de fontes for integrada.";
+                                CatalogData.fontes-app(CatalogModal.app-id);
                             }
                         }
 
@@ -1035,7 +1039,7 @@ component DetailsDialog inherits Rectangle {
                             label: "Instalar";
                             variant: "primary";
                             clicked => {
-                                CatalogModal.action-message = "Instalar: nenhum comando foi executado; falta integrar o gerenciador de pacotes.";
+                                CatalogData.acao-app(CatalogModal.app-id, "instalar");
                             }
                         }
 
@@ -1078,7 +1082,7 @@ component DetailsDialog inherits Rectangle {
 
                         Text {
                             font-family: "Inter";
-                            text: CatalogModal.action-message;
+                            text: CatalogData.acao-mensagem;
                             color: Theme.text-muted;
                             font-size: 12px;
                             wrap: word-wrap;

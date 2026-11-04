@@ -318,8 +318,56 @@ fn versao_de_linha(saida: &str, chaves: &[&str]) -> Option<String> {
     })
 }
 
-// Instalação/remoção (install.rs do repo) chega no slice de ações; enquanto
-// ela não existe aqui, nada executa operações privilegiadas.
+/// instalação via gerenciador nativo da família — `pkexec` tira a decisão
+/// de elevação dos processos de usuário (sem sudo, sem armazenar senha)
+pub fn instalar(pkg: &str) -> Result<(), String> {
+    let (cmd, args): (&str, Vec<String>) = match atual() {
+        PkgMgr::Pacman => ("pacman", vec!["-S".into(), "--noconfirm".into(), pkg.into()]),
+        PkgMgr::Apt => ("apt-get", vec!["install".into(), "-y".into(), pkg.into()]),
+        PkgMgr::Dnf => ("dnf", vec!["install".into(), "-y".into(), pkg.into()]),
+        PkgMgr::Zypper => ("zypper", vec!["--non-interactive".into(), "install".into(), pkg.into()]),
+        PkgMgr::Apk => ("apk", vec!["add".into(), pkg.into()]),
+        PkgMgr::Xbps => ("xbps-install", vec!["-y".into(), "-S".into(), pkg.into()]),
+        PkgMgr::Emerge => return Err("instalação nativa via Portage não é suportada nesta versão".to_string()),
+        PkgMgr::Eopkg => ("eopkg", vec!["install".into(), "-y".into(), pkg.into()]),
+        PkgMgr::Nenhum => return Err("a fonte nativa não é compatível com esta distribuição".into()),
+    };
+    match super::spawn::comando("pkexec").arg(cmd).args(args).output() {
+        Ok(o) => {
+            if o.status.success() {
+                Ok(())
+            } else {
+                Err(String::from_utf8_lossy(&o.stderr).trim().to_string())
+            }
+        }
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// remoção via gerenciador nativo da família — mesmo caminho da instalação
+pub fn remover(pkg: &str) -> Result<(), String> {
+    let (cmd, args): (&str, Vec<String>) = match atual() {
+        PkgMgr::Pacman => ("pacman", vec!["-Rns".into(), "--noconfirm".into(), pkg.into()]),
+        PkgMgr::Apt => ("apt-get", vec!["remove".into(), "-y".into(), pkg.into()]),
+        PkgMgr::Dnf => ("dnf", vec!["remove".into(), "-y".into(), pkg.into()]),
+        PkgMgr::Zypper => ("zypper", vec!["--non-interactive".into(), "remove".into(), pkg.into()]),
+        PkgMgr::Apk => ("apk", vec!["del".into(), pkg.into()]),
+        PkgMgr::Xbps => ("xbps-remove", vec!["-y".into(), pkg.into()]),
+        PkgMgr::Emerge => return Err("remoção nativa via Portage não é suportada nesta versão".to_string()),
+        PkgMgr::Eopkg => ("eopkg", vec!["remove".into(), "-y".into(), pkg.into()]),
+        PkgMgr::Nenhum => return Err("a fonte nativa não é compatível com esta distribuição".into()),
+    };
+    match super::spawn::comando("pkexec").arg(cmd).args(args).output() {
+        Ok(o) => {
+            if o.status.success() {
+                Ok(())
+            } else {
+                Err(String::from_utf8_lossy(&o.stderr).trim().to_string())
+            }
+        }
+        Err(e) => Err(e.to_string()),
+    }
+}
 
 #[cfg(test)]
 mod tests {
