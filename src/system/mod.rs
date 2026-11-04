@@ -9,13 +9,14 @@
 //!   sem confirmação, o estado é "desconhecido");
 //! - `os`/`spawn`: base de distribuição e execução consciente de sandbox.
 //!
-//! Fora do escopo por ora (slices seguintes): monitoramento, ações de
-//! instalar/remover/abrir (install.rs) e Protons dinâmicos do Steam.
+//! Fora do escopo por ora (slices seguintes): monitoramento e as ações de
+//! instalar/remover/abrir (install.rs).
 
 pub mod appinfo;
 pub mod os;
 pub mod pkgmgr;
 pub mod spawn;
+pub mod steam;
 pub mod tools;
 
 /// distribuição detectada pelo /etc/os-release (honesto: None quando

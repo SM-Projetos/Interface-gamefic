@@ -4,8 +4,8 @@
 //! diferenças em relação ao original, todas documentadas:
 //! - sem ícones em data-URI: a interface Slint resolve os ícones embutidos
 //!   pelo próprio `id` (AppIcon); o backend não entrega imagens;
-//! - sem Protons dinâmicos (steam.rs entra no slice de ações da aba);
-//!   por ora a compatibilidade lista somente o Wine;
+//! - protons do Steam entram aqui via `steam::protons_custom()` e
+//!   `steam::protons_oficiais()` (porta do repositório), sem data-URI;
 //! - o memo de flatpaks (`flatpak_ids_estado`), que no repositório vive no
 //!   install.rs, mora aqui enquanto o install.rs não é portado.
 //!
@@ -261,8 +261,10 @@ pub fn criacao_social() -> Vec<AppEntry> {
         .collect()
 }
 
-/// compatibilidade: por ora apenas o Wine nativo/instalado diretamente (a
-/// detecção de Protons do Steam, do repo, fica para o slice de ações)
+/// compatibilidade: Wine (nativo/direto) + Protons reais das instalações
+/// Steam detectadas (customizados em `compatibilitytools.d` primeiro, depois
+/// os oficiais gerenciados pelo cliente, sem repetir quem já saiu como
+/// custom) — mesma ordem do repositório Gamefic
 pub fn compatibility() -> Vec<AppEntry> {
     let mut entries: Vec<AppEntry> = Vec::new();
 
@@ -276,6 +278,40 @@ pub fn compatibility() -> Vec<AppEntry> {
         estado: if binario { "instalado" } else { "desconhecido" }.to_string(),
         formato: binario.then(|| "nativo".to_string()),
     });
+
+    // customizados em compatibilitytools.d (todas as raízes Steam), uma
+    // entrada por nome — raízes que apontam para o mesmo lugar não repetem card
+    for p in super::steam::protons_custom() {
+        let id = format!("proton:{}", p.nome);
+        if entries.iter().any(|e| e.id == id) {
+            continue;
+        }
+        entries.push(AppEntry {
+            id: format!("proton:{}", p.nome),
+            name: p.nome.clone(),
+            description: "Proton para Steam (compatibilitytools.d)".to_string(),
+            available: true,
+            version: p.versao,
+            estado: "instalado".to_string(),
+            formato: Some("Steam (custom)".to_string()),
+        });
+    }
+
+    // oficiais gerenciados pelo Steam, em cada biblioteca detectada
+    for p in super::steam::protons_oficiais() {
+        if entries.iter().any(|e| e.id == format!("proton:{}", p.nome)) {
+            continue;
+        }
+        entries.push(AppEntry {
+            id: format!("proton:{}", p.nome),
+            name: p.nome.clone(),
+            description: "Proton gerenciado pelo Steam".to_string(),
+            available: true,
+            version: p.versao,
+            estado: "instalado".to_string(),
+            formato: Some("Steam (oficial)".to_string()),
+        });
+    }
 
     entries
 }
