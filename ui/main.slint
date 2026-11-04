@@ -182,7 +182,14 @@ component TitleBar inherits Rectangle {
     background: Theme.window-bg;
     accessible-role: window-title-bar;
 
-    WindowMoveArea { }
+    // duplo clique na barra (inclusive atrás dos textos) maximiza/restaura,
+    // como um título nativo; o arrasto da janela continua pelo WindowMoveArea,
+    // que não inicia move em clique simples e repassa o evento ao filho
+    WindowMoveArea {
+        TouchArea {
+            double-clicked => { root.maximize-requested(); }
+        }
+    }
 
     Text {
         font-family: "Inter";
@@ -828,6 +835,14 @@ component DetailsDialog inherits Rectangle {
     height: 100%;
     background: rgba(2, 10, 24, 0.74);
 
+    // Zona de fechamento cobrindo a janela toda: um clique fora do cartão
+    // fecha o modal (mesma ação do botão Fechar) e absorve o toque para que
+    // nada atrás dele fique clicável. Os controles do cartão ficam acima e
+    // continuam funcionando normalmente.
+    tap-fora := TouchArea {
+        clicked => { CatalogModal.open = false; }
+    }
+
     // Modal de tamanho fixo, centralizado sobre a janela inteira por cálculo
     // explícito (o VerticalLayout de centralização comportou-se de forma
     // instável quando o dialog é filho direto da Window).
@@ -844,6 +859,11 @@ component DetailsDialog inherits Rectangle {
         drop-shadow-offset-y: 16px;
         drop-shadow-blur: 38px;
         drop-shadow-color: rgba(0, 0, 0, 0.46);
+
+        // absorve os toques nos espaços do cartão sem controles (textos,
+        // separadores): sem isso, o clique atravessa para a zona de fora
+        // e o modal fecha ao tocar dentro dele
+        TouchArea { }
 
             VerticalLayout {
                 padding: 30px;
@@ -908,25 +928,9 @@ component DetailsDialog inherits Rectangle {
                         }
                     }
 
-                    Rectangle {
-                        width: 38px;
-                        height: 38px;
-                        border-radius: 19px;
-                        background: close-touch.has-hover ? Theme.card-bg-highlight : Theme.nav-hover;
-
-                        Text {
-                            font-family: "Inter";
-                            text: "×";
-                            color: Theme.text-main;
-                            font-size: 25px;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-
-                        close-touch := TouchArea {
-                            clicked => { CatalogModal.open = false; }
-                        }
-                    }
+                    // O "×" de fechar foi removido: o encerramento acontece
+                    // pelo botão Fechar (canto inferior direito), pelo clique
+                    // fora do cartão ou como qualquer ação de fechamento nativa.
                 }
 
                 Rectangle {
@@ -1104,14 +1108,15 @@ component AppCatalogPage inherits Rectangle {
     ScrollView {
         width: 100%;
         height: 100%;
-        content-height: 2000px;
+        // sem content-height fixo: o Flickable deriva do preferred-height do
+        // conteúdo real (o FlexboxLayout com wrap mede todas as linhas com a
+        // largura disponível) — mudanças de catálogo/tamanho não cortam cards
         vertical-scrollbar-policy: as-needed;
         horizontal-scrollbar-policy: always-off;
         mouse-drag-pan-enabled: true;
 
         VerticalLayout {
             width: 100%;
-            height: 2000px;
             padding-left: 40px;
             padding-right: 56px;
             padding-top: 36px;
@@ -1190,14 +1195,13 @@ component ContentPage inherits Rectangle {
     ScrollView {
         width: 100%;
         height: 100%;
-        content-height: 1300px;
+        // mesmo ajuste da aba Apps: alturas derivadas do conteúdo real
         vertical-scrollbar-policy: as-needed;
         horizontal-scrollbar-policy: always-off;
         mouse-drag-pan-enabled: true;
 
         VerticalLayout {
             width: 100%;
-            height: 1300px;
             padding-left: 40px;
             padding-right: 56px;
             padding-top: 36px;
@@ -1688,8 +1692,14 @@ export component MainWindow inherits Window {
     title: "Gamefic";
     no-frame: true;
     resize-border-width: 5px;
-    width: 2048px;
-    height: 1098px;
+    // preferred (não width/height): o tamanho de partida não fica preso a
+    // uma restrição fixa construtiva — a janela abre nessa medida, cabe
+    // melhor na tela do usuário e pode ser redimensionada livremente
+    preferred-width: 1920px;
+    preferred-height: 1040px;
+    // abaixo disto, o modal fixo (760px) e a sidebar (256px) não convivem
+    min-width: 1024px;
+    min-height: 648px;
     background: transparent;
 
     in-out property <int> active-navigation: 0;

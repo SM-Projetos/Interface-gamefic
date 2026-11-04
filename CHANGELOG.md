@@ -1,5 +1,18 @@
 # Changelog
 
+## Interface — rolagem, janela e modal - 2026-11-03
+- Rolagem completa do catálogo nas abas Apps e Criação de Conteúdo: alturas fixas
+  (content-height/height) trocadas por medida derivada do conteúdo real — cards
+  abaixo do corte anterior (ferramentas e compatibilidade) voltam a ser acessados.
+- Janela com tamanho de partida por preferred-width/height (1920×1040) e mínimos
+  de 1024×648: abre dentro da tela e o redimensionamento não fica preso ao valor
+  inicial fixo.
+- Barra de título: duplo clique maximiza/restaura (TouchArea aninhada ao
+  WindowMoveArea, mantendo o arrasto para mover a janela).
+- Modal de detalhes: removido o × de fechar (resta o botão Fechar do canto
+  inferior direito); clique fora do cartão fecha o modal; toques dentro do
+  cartão e no escurecimento não mais atravessam para os elementos de fundo.
+
 ## Correção de compilação - 2026-11-02
 - Removida largura percentual inválida da propriedade `content-width` do ScrollView.
 - Removidos `min-width` e `min-height` conflitantes com as dimensões iniciais da janela.
