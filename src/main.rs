@@ -123,10 +123,12 @@ fn detectar(weak: slint::Weak<MainWindow>) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Backend Winit explícito e identidade de app estável no desktop
-    // (Wayland/X11), igual ao app nativo do repositório.
+    // Backend Winit como padrão (identidade de app estável no desktop
+    // Wayland/X11, igual ao app nativo do repositório). `SLINT_BACKEND`
+    // no ambiente sobrepõe — usado para diagnóstico em backend headless.
+    let backend = std::env::var("SLINT_BACKEND").unwrap_or_else(|_| "winit".into());
     slint::BackendSelector::new()
-        .backend_name("winit".into())
+        .backend_name(backend.into())
         .select()?;
     slint::set_xdg_app_id("com.sergio.gamefic")?;
 
