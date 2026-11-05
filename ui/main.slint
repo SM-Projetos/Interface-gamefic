@@ -104,6 +104,46 @@ export global CatalogModal {
     }
 }
 
+// Linhas da aba Kernels e Drivers, vindas do backend (system::hardware).
+// Campos indisponíveis chegam como "Não disponível" — nada é inventado.
+struct GpuLine {
+    vendor: string,
+    device: string,
+    pci: string,
+    ids: string,
+    driver: string,
+}
+
+struct VulkanLine {
+    device: string,
+    driver: string,
+}
+
+struct ToolLine {
+    name: string,
+    description: string,
+    installed: bool,
+}
+
+// Dados de kernel/GPUs/drivers fornecidos pelo backend em thread de fundo.
+// Enquanto `loaded` é falso, os valores mostram "Consultando…".
+export global KernelData {
+    in-out property <bool> loaded: false;
+    callback refresh();
+    in-out property <string> distro-nome: "Consultando…";
+    in-out property <string> distro-familia: "Consultando…";
+    in-out property <string> distro-versao: "Consultando…";
+    in-out property <string> kernel-execucao: "Consultando…";
+    in-out property <string> kernel-arch: "Consultando…";
+    in-out property <string> cpu-modelo: "Consultando…";
+    in-out property <string> cpu-fisicos: "Consultando…";
+    in-out property <string> cpu-threads: "Consultando…";
+    in-out property <string> cpu-freq: "Consultando…";
+    in-out property <[GpuLine]> gpus: [];
+    in-out property <[VulkanLine]> vulkan-gpus: [];
+    in-out property <[ToolLine]> ferramentas: [];
+}
+
 component NavigationItem inherits Rectangle {
     in property <string> label;
     in property <image> icon-image;
@@ -1316,6 +1356,338 @@ component ContentPage inherits Rectangle {
     }
 }
 
+// Linha rótulo-valor das páginas de detecção: rótulo fixo à esquerda e
+// valor real elidido; conteúdo vem do backend (nunca inventado aqui).
+component InfoRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    height: 24px;
+    background: transparent;
+
+    HorizontalLayout {
+        spacing: 10px;
+        Text {
+            width: 128px;
+            font-family: "Inter";
+            font-size: 13px;
+            color: Theme.text-muted;
+            text: root.label;
+            vertical-alignment: center;
+        }
+        Text {
+            horizontal-stretch: 1;
+            font-family: "Inter";
+            font-size: 13px;
+            font-weight: 650;
+            color: Theme.text-main;
+            text: root.value;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Card de detecção no padrão do catálogo/monitor (gradient + borda + sombra):
+// recebe as linhas de conteúdo via @children.
+component InfoCard inherits Rectangle {
+    in property <string> card-title;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: Theme.dark-mode
+        ? rgba(0, 8, 18, 0.30)
+        : rgba(80, 130, 170, 0.13);
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        Text {
+            height: 20px;
+            font-family: "Inter";
+            font-size: 15px;
+            font-weight: 750;
+            color: Theme.text-main;
+            text: root.card-title;
+        }
+
+        @children
+    }
+}
+
+// Pill pequena de classificação (fabricante da GPU, estado da ferramenta)
+// no mesmo estilo dos chips de estado do catálogo.
+component Pill inherits Rectangle {
+    in property <string> pill-text;
+    in property <bool> pill-on;
+    height: 22px;
+    border-radius: 11px;
+    background: root.pill-on ? Theme.status-installed : Theme.nav-hover;
+    border-width: root.pill-on ? 0px : 1px;
+    border-color: Theme.card-border;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        alignment: center;
+
+        Text {
+            font-family: "Inter";
+            font-size: 11px;
+            font-weight: 700;
+            color: root.pill-on ? #ffffff : Theme.text-muted;
+            text: root.pill-text;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Card de GPU: pill do fabricante, modelo e dados de PCI/driver reais.
+component GpuCard inherits Rectangle {
+    in property <GpuLine> gpu;
+    min-width: 320px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: Theme.dark-mode
+        ? rgba(0, 8, 18, 0.30)
+        : rgba(80, 130, 170, 0.13);
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 10px;
+            alignment: start;
+
+            Pill {
+                pill-text: root.gpu.vendor;
+                pill-on: false;
+            }
+
+            Text {
+                horizontal-stretch: 1;
+                font-family: "Inter";
+                font-size: 15px;
+                font-weight: 750;
+                color: Theme.text-main;
+                text: root.gpu.device;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+        }
+
+        InfoRow { label: "Endereço PCI"; value: root.gpu.pci; }
+        InfoRow { label: "IDs"; value: root.gpu.ids; }
+        InfoRow { label: "Driver"; value: root.gpu.driver; }
+    }
+}
+
+// Linha de ferramenta de jogos: nome, pill de estado real e descrição.
+component ToolRow inherits Rectangle {
+    in property <ToolLine> tool;
+    height: 26px;
+    background: transparent;
+
+    HorizontalLayout {
+        spacing: 12px;
+        alignment: start;
+
+        Text {
+            width: 140px;
+            font-family: "Inter";
+            font-size: 13px;
+            font-weight: 700;
+            color: Theme.text-main;
+            text: root.tool.name;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+
+        Pill {
+            pill-text: root.tool.installed ? "Instalada" : "Não instalada";
+            pill-on: root.tool.installed;
+        }
+
+        Text {
+            horizontal-stretch: 1;
+            font-family: "Inter";
+            font-size: 12px;
+            color: Theme.text-muted;
+            text: root.tool.description;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component KernelsPage inherits Rectangle {
+    background: Theme.page-bg;
+
+    ScrollView {
+        width: 100%;
+        height: 100%;
+        // sem content-height fixo: o Flickable deriva do preferred-height do
+        // conteúdo real (mesma abordagem do AppCatalogPage)
+        vertical-scrollbar-policy: as-needed;
+        horizontal-scrollbar-policy: always-off;
+        mouse-drag-pan-enabled: true;
+
+        VerticalLayout {
+            width: 100%;
+            padding-left: 40px;
+            padding-right: 56px;
+            padding-top: 36px;
+            padding-bottom: 38px;
+            spacing: 24px;
+
+            // cabeçalho da página
+            VerticalLayout {
+                spacing: 8px;
+                height: 78px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "Kernels e Drivers";
+                    color: Theme.text-main;
+                    font-size: 36px;
+                    font-weight: 800;
+                    height: 43px;
+                }
+
+                Text {
+                    font-family: "Inter";
+                    text: "Informações sobre o kernel, GPUs, drivers e componentes gráficos.";
+                    color: Theme.text-muted;
+                    font-size: 16px;
+                    height: 22px;
+                }
+            }
+
+            // título de seção no padrão das categorias do catálogo
+            VerticalLayout {
+                spacing: 12px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "Sistema";
+                    color: Theme.text-main;
+                    font-size: 26px;
+                    font-weight: 750;
+                    height: 31px;
+                    vertical-alignment: center;
+                }
+
+                HorizontalLayout {
+                    spacing: 12px;
+
+                    InfoCard {
+                        card-title: "Distribuição";
+                        InfoRow { label: "Distribuição"; value: KernelData.distro-nome; }
+                        InfoRow { label: "Família"; value: KernelData.distro-familia; }
+                        InfoRow { label: "Versão"; value: KernelData.distro-versao; }
+                    }
+
+                    InfoCard {
+                        card-title: "Kernel";
+                        InfoRow { label: "Em execução"; value: KernelData.kernel-execucao; }
+                        InfoRow { label: "Arquitetura"; value: KernelData.kernel-arch; }
+                    }
+
+                    InfoCard {
+                        card-title: "Processador";
+                        InfoRow { label: "Modelo"; value: KernelData.cpu-modelo; }
+                        InfoRow { label: "Núcleos físicos"; value: KernelData.cpu-fisicos; }
+                        InfoRow { label: "Threads"; value: KernelData.cpu-threads; }
+                        InfoRow { label: "Frequência base"; value: KernelData.cpu-freq; }
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 12px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "GPUs";
+                    color: Theme.text-main;
+                    font-size: 26px;
+                    font-weight: 750;
+                    height: 31px;
+                    vertical-alignment: center;
+                }
+
+                // estado vazio honesto: nunca é mostrado antes de a detecção
+                // responder, para não parecer ausência de GPU
+                if KernelData.gpus.length == 0: InfoCard {
+                    card-title: "GPUs";
+
+                    Text {
+                        font-family: "Inter";
+                        text: KernelData.loaded
+                            ? "Nenhuma GPU detectada no sistema."
+                            : "Consultando o sistema…";
+                        color: Theme.text-muted;
+                        font-size: 13px;
+                        height: 20px;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 12px;
+
+                    for gpu in KernelData.gpus: GpuCard {
+                        gpu: gpu;
+                    }
+                }
+            }
+
+            InfoCard {
+                card-title: "Vulkan";
+
+                if KernelData.vulkan-gpus.length == 0: Text {
+                    font-family: "Inter";
+                    text: KernelData.loaded
+                            ? "vulkaninfo não disponível neste sistema — o suporte Vulkan não pôde ser consultado."
+                            : "Consultando o sistema…";
+                    color: Theme.text-muted;
+                    font-size: 13px;
+                    height: 20px;
+                }
+
+                for vulkan in KernelData.vulkan-gpus: VerticalLayout {
+                    spacing: 4px;
+
+                    InfoRow { label: "Dispositivo"; value: vulkan.device; }
+                    InfoRow { label: "Driver"; value: vulkan.driver; }
+                }
+            }
+
+            InfoCard {
+                card-title: "Ferramentas de jogos";
+
+                for tool in KernelData.ferramentas: ToolRow {
+                    tool: tool;
+                }
+            }
+        }
+    }
+}
+
 component PlaceholderPage inherits Rectangle {
     in property <string> page-title;
     background: Theme.page-bg;
@@ -1864,7 +2236,25 @@ export component MainWindow inherits Window {
             }
 
             tab3 := Rectangle {
-                property <bool> active: root.active-navigation >= 3;
+                property <bool> active: root.active-navigation == 3;
+                width: 100%;
+                height: 100%;
+                x: self.active ? 0px : -34px;
+                opacity: self.active ? 1.0 : 0.0;
+                visible: self.opacity > 0.001;
+                animate x, opacity { duration: 300ms; easing: ease-out; }
+
+                KernelsPage {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                TouchArea { visible: !parent.active; }
+            }
+
+            // abas ainda sem página própria: placeholder animado
+            tab4 := Rectangle {
+                property <bool> active: root.active-navigation >= 4;
                 width: 100%;
                 height: 100%;
                 x: self.active ? 0px : -34px;

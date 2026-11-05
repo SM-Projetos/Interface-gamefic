@@ -55,6 +55,134 @@ fn modelo(lines: Vec<AppInfo>) -> ModelRc<AppInfo> {
     Rc::new(VecModel::from(lines)).into()
 }
 
+/// linha de GPU para a aba Kernels e Drivers: os campos voltem sempre com
+/// valor apresentável — "Não disponível" quando a detecção não respondeu.
+fn linha_de_gpu(g: &system::hardware::GpuInfo) -> GpuLine {
+    GpuLine {
+        vendor: SharedString::from(
+            g.vendor_name.as_deref().unwrap_or("Não disponível"),
+        ),
+        device: SharedString::from(
+            g.device_name.as_deref().unwrap_or("Dispositivo gráfico"),
+        ),
+        pci: SharedString::from(g.pci_address.as_deref().unwrap_or("Não disponível")),
+        ids: SharedString::from(format!(
+            "{}:{}",
+            g.vendor_id.as_deref().unwrap_or("?"),
+            g.device_id.as_deref().unwrap_or("?")
+        )),
+        driver: SharedString::from(g.driver.as_deref().unwrap_or("Não disponível")),
+    }
+}
+
+fn linha_de_vulkan(v: &system::hardware::VulkanGpu) -> VulkanLine {
+    VulkanLine {
+        device: SharedString::from(
+            v.device_name.as_deref().unwrap_or("Dispositivo Vulkan"),
+        ),
+        driver: SharedString::from(v.driver_name.as_deref().unwrap_or("Não disponível")),
+    }
+}
+
+/// linha de ferramenta de jogos: `available` é capacidade detectada
+/// (binário/flatpak respondendo); sem prova, "Não instalada" é honesto
+/// porque a ferramenta não respondeu no sistema.
+fn linha_de_ferramenta(t: &system::ToolInfo) -> ToolLine {
+    ToolLine {
+        name: SharedString::from(t.name.as_str()),
+        description: SharedString::from(t.description.as_str()),
+        installed: t.available,
+    }
+}
+
+/// frequência base formatada: MHz abaixo de 1000, GHz com uma casa acima
+fn frequencia(mhz: Option<u32>) -> SharedString {
+    SharedString::from(match mhz {
+        None => "Não disponível".to_string(),
+        Some(mhz) if mhz >= 1000 => format!("{:.1} GHz", mhz as f32 / 1000.0),
+        Some(mhz) => format!("{mhz} MHz"),
+    })
+}
+
+/// contagem de CPU: "—" quando não detectada (degradado honesto)
+fn contagem(valor: Option<u32>) -> SharedString {
+    SharedString::from(
+        valor
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "—".to_string()),
+    )
+}
+
+/// detecção de kernel/GPUs/drivers em thread de fundo (`system::hardware`),
+/// aplicada à UI pela event loop; disparada na inicialização e pelo
+/// botão de atualizar da aba
+fn detectar_kernels(weak: slint::Weak<MainWindow>) {
+    let _ = std::thread::Builder::new()
+        .name("gamefic-kernels".to_string())
+        .spawn(move || {
+            let snap = system::hardware::snapshot();
+
+            let gpus = snap.gpus.iter().map(linha_de_gpu).collect::<Vec<_>>();
+            let vulkan_gpus = snap.vulkan.iter().flat_map(|v| v.gpus.iter().map(linha_de_vulkan)).collect::<Vec<_>>();
+            let ferramentas = snap.ferramentas.iter().map(linha_de_ferramenta).collect::<Vec<_>>();
+
+            let distro_nome = snap
+                .distro
+                .as_ref()
+                .map(|d| SharedString::from(d.name.as_str()))
+                .unwrap_or_else(|| "Não disponível".into());
+            let distro_familia = snap
+                .distro
+                .as_ref()
+                .and_then(|d| d.family.as_deref())
+                .map(SharedString::from)
+                .unwrap_or_else(|| "Não disponível".into());
+            let distro_versao = snap
+                .distro
+                .as_ref()
+                .and_then(|d| d.version.as_deref())
+                .map(SharedString::from)
+                .unwrap_or_else(|| "Não disponível".into());
+            let kernel = SharedString::from(
+                snap.kernel.as_deref().unwrap_or("Não disponível"),
+            );
+            let arch = SharedString::from(snap.arch.as_deref().unwrap_or("Não disponível"));
+            let (cpu_modelo, cpu_fisicos, cpu_threads, cpu_freq) = match &snap.cpu {
+                Some(cpu) => (
+                    SharedString::from(
+                        cpu.model.as_deref().unwrap_or("Não disponível"),
+                    ),
+                    contagem(cpu.cores_physical),
+                    contagem(cpu.threads_logical),
+                    frequencia(cpu.base_freq_mhz),
+                ),
+                None => (
+                    "Não disponível".into(),
+                    contagem(None),
+                    contagem(None),
+                    frequencia(None),
+                ),
+            };
+
+            let _ = weak.upgrade_in_event_loop(move |ui| {
+                let kernel_data = ui.global::<KernelData>();
+                kernel_data.set_distro_nome(distro_nome);
+                kernel_data.set_distro_familia(distro_familia);
+                kernel_data.set_distro_versao(distro_versao);
+                kernel_data.set_kernel_execucao(kernel);
+                kernel_data.set_kernel_arch(arch);
+                kernel_data.set_cpu_modelo(cpu_modelo);
+                kernel_data.set_cpu_fisicos(cpu_fisicos);
+                kernel_data.set_cpu_threads(cpu_threads);
+                kernel_data.set_cpu_freq(cpu_freq);
+                kernel_data.set_gpus(Rc::new(VecModel::from(gpus)).into());
+                kernel_data.set_vulkan_gpus(Rc::new(VecModel::from(vulkan_gpus)).into());
+                kernel_data.set_ferramentas(Rc::new(VecModel::from(ferramentas)).into());
+                kernel_data.set_loaded(true);
+            });
+        });
+}
+
 /// mensagem de ação na caixa de informação do modal de detalhes
 fn mensagem(weak: &slint::Weak<MainWindow>, texto: String) {
     let _ = weak.upgrade_in_event_loop(move |ui| {
@@ -251,7 +379,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    let kernel_data = ui.global::<KernelData>();
+    kernel_data.on_refresh({
+        let weak = ui.as_weak();
+        move || {
+            detectar_kernels(weak.clone());
+        }
+    });
+
     detectar(ui.as_weak());
+    detectar_kernels(ui.as_weak());
 
     ui.run()?;
     Ok(())

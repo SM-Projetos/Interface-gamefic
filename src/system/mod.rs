@@ -11,12 +11,15 @@
 //! - `install`: listagem real de fontes, instalar/remover/atualizar,
 //!   abrir launcher e resolução de fonte padrão;
 //! - `steam`: protons localizados do Steam (consumo futuro do install);
+//! - `hardware`: processador, GPUs, Vulkan e kernel para a aba
+//!   Kernels e Drivers (porto de `cpu.rs`/`gpu.rs`/`vulkan.rs`);
 //! - `os`/`spawn`: base de distribuição e execução consciente de sandbox.
 //!
 //! Fora do escopo por ora (slices seguintes): monitoramento, verificação
 //! de versões remotas/has_update (rede) e ativação de MangoHud no abrir.
 
 pub mod appinfo;
+pub mod hardware;
 pub mod install;
 pub mod os;
 pub mod pkgmgr;
