@@ -13,6 +13,8 @@
 //! - `steam`: protons localizados do Steam (consumo futuro do install);
 //! - `hardware`: processador, GPUs, Vulkan e kernel para a aba
 //!   Kernels e Drivers (porto de `cpu.rs`/`gpu.rs`/`vulkan.rs`);
+//! - `recommendations`: análise de oportunidades e perfis para a aba
+//!   Otimização (porto de `recommendations.rs`);
 //! - `os`/`spawn`: base de distribuição e execução consciente de sandbox.
 //!
 //! Fora do escopo por ora (slices seguintes): monitoramento, verificação
@@ -23,6 +25,7 @@ pub mod hardware;
 pub mod install;
 pub mod os;
 pub mod pkgmgr;
+pub mod recommendations;
 pub mod spawn;
 pub mod steam;
 pub mod tools;

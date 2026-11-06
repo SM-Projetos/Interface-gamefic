@@ -144,6 +144,42 @@ export global KernelData {
     in-out property <[ToolLine]> ferramentas: [];
 }
 
+// Linhas da aba Otimização, vindas do backend (system::recommendations).
+// Todos os estados são reais; nada é aplicado no sistema nesta versão.
+struct OptResource {
+    name: string,
+    state: string,
+    detail: string,
+}
+
+struct OptRecommendation {
+    title: string,
+    rationale: string,
+    beneficio: string,
+    limitacoes: string,
+    risk: string,
+    actionable: bool,
+}
+
+struct OptProfile {
+    name: string,
+    description: string,
+    adjustments: [string],
+    implemented: int,
+    resumo: string,
+}
+
+// Dados da análise de otimização, aplicados pela event loop após a
+// thread de fundo; enquanto `loaded` é falso, as seções mostram o
+// estado de carregamento.
+export global OtimizacaoData {
+    in-out property <bool> loaded: false;
+    callback refresh();
+    in-out property <[OptResource]> recursos: [];
+    in-out property <[OptRecommendation]> recomendacoes: [];
+    in-out property <[OptProfile]> perfis: [];
+}
+
 component NavigationItem inherits Rectangle {
     in property <string> label;
     in property <image> icon-image;
@@ -1688,6 +1724,384 @@ component KernelsPage inherits Rectangle {
     }
 }
 
+// Pill de risco das recomendações: cores semânticas (âmbar/vermelho)
+// aplicadas apenas aqui, sem alterar os tokens globais do tema.
+component RiskPill inherits Rectangle {
+    in property <string> risk;
+    height: 22px;
+    border-radius: 11px;
+    background: root.risk == "baixo"
+        ? Theme.nav-hover
+        : root.risk == "medio" ? rgba(251, 191, 36, 0.12) : rgba(248, 113, 113, 0.12);
+    border-width: 1px;
+    border-color: root.risk == "baixo"
+        ? Theme.card-border
+        : root.risk == "medio" ? #fbbf24 : #f87171;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        alignment: center;
+
+        Text {
+            font-family: "Inter";
+            font-size: 11px;
+            font-weight: 700;
+            color: root.risk == "baixo"
+                ? Theme.accent
+                : root.risk == "medio" ? #fbbf24 : #f87171;
+            text: root.risk == "baixo"
+                ? "Risco baixo"
+                : root.risk == "medio" ? "Risco médio" : "Risco alto";
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Card de estado do sistema: nome, pill com o estado real e detalhe da
+// fonte de leitura (quando existe).
+component OptResourceCard inherits Rectangle {
+    in property <OptResource> resource;
+    min-width: 300px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: Theme.dark-mode
+        ? rgba(0, 8, 18, 0.30)
+        : rgba(80, 130, 170, 0.13);
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        Text {
+            height: 20px;
+            font-family: "Inter";
+            font-size: 15px;
+            font-weight: 750;
+            color: Theme.text-main;
+            text: root.resource.name;
+            overflow: elide;
+        }
+
+        HorizontalLayout {
+            height: 22px;
+            alignment: start;
+
+            Pill {
+                pill-text: root.resource.state;
+                pill-on: root.resource.state == "Presente"
+                    || root.resource.state == "Disponível";
+            }
+        }
+
+        if root.resource.detail != "": Text {
+            font-family: "Inter";
+            font-size: 12px;
+            color: Theme.text-muted;
+            text: root.resource.detail;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// Card de recomendação: título + pill de risco, justificativa e linhas
+// de benefício/limitações — nesta versão, análise apenas (sem ação).
+component RecommendationCard inherits Rectangle {
+    in property <OptRecommendation> rec;
+    min-width: 420px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: Theme.dark-mode
+        ? rgba(0, 8, 18, 0.30)
+        : rgba(80, 130, 170, 0.13);
+
+    VerticalLayout {
+        padding: 18px;
+        spacing: 10px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 12px;
+
+            Text {
+                horizontal-stretch: 1;
+                font-family: "Inter";
+                font-size: 15px;
+                font-weight: 750;
+                color: Theme.text-main;
+                text: root.rec.title;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+
+            RiskPill {
+                risk: root.rec.risk;
+            }
+        }
+
+        Text {
+            font-family: "Inter";
+            font-size: 13px;
+            color: Theme.text-main;
+            text: root.rec.rationale;
+            wrap: word-wrap;
+        }
+
+        InfoRow { label: "Benefício esperado"; value: root.rec.beneficio; }
+        InfoRow { label: "Limitações"; value: root.rec.limitacoes; }
+
+        if !root.rec.actionable: HorizontalLayout {
+            height: 22px;
+            alignment: start;
+
+            Pill {
+                pill-text: "Análise apenas — ação em etapa futura";
+                pill-on: false;
+            }
+        }
+    }
+}
+
+// Card de perfil (estrutura para etapa futura): descrição, lista de
+// ajustes previstos e resumo honesto do que já é implementável.
+component PerfilCard inherits Rectangle {
+    in property <OptProfile> perfil;
+    min-width: 380px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.card-bg;
+    drop-shadow-offset-x: 0px;
+    drop-shadow-offset-y: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: Theme.dark-mode
+        ? rgba(0, 8, 18, 0.30)
+        : rgba(80, 130, 170, 0.13);
+
+    VerticalLayout {
+        padding: 18px;
+        spacing: 10px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 12px;
+
+            Text {
+                horizontal-stretch: 1;
+                font-family: "Inter";
+                font-size: 15px;
+                font-weight: 750;
+                color: Theme.text-main;
+                text: root.perfil.name;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+
+            Pill {
+                pill-text: "Estrutura";
+                pill-on: false;
+            }
+        }
+
+        Text {
+            font-family: "Inter";
+            font-size: 13px;
+            color: Theme.text-main;
+            text: root.perfil.description;
+            wrap: word-wrap;
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+
+            for ajuste in root.perfil.adjustments: Text {
+                font-family: "Inter";
+                font-size: 12.5px;
+                color: Theme.text-muted;
+                text: ajuste;
+                overflow: elide;
+            }
+        }
+
+        Text {
+            font-family: "Inter";
+            font-size: 12px;
+            color: Theme.text-muted;
+            text: root.perfil.resumo;
+        }
+    }
+}
+
+component OtimizacaoPage inherits Rectangle {
+    background: Theme.page-bg;
+
+    ScrollView {
+        width: 100%;
+        height: 100%;
+        vertical-scrollbar-policy: as-needed;
+        horizontal-scrollbar-policy: always-off;
+        mouse-drag-pan-enabled: true;
+
+        VerticalLayout {
+            width: 100%;
+            padding-left: 40px;
+            padding-right: 56px;
+            padding-top: 36px;
+            padding-bottom: 38px;
+            spacing: 24px;
+
+            // cabeçalho da página
+            VerticalLayout {
+                spacing: 8px;
+                height: 78px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "Otimização";
+                    color: Theme.text-main;
+                    font-size: 36px;
+                    font-weight: 800;
+                    height: 43px;
+                }
+
+                Text {
+                    font-family: "Inter";
+                    text: "Análise de oportunidades e perfis para preparar o computador para jogos.";
+                    color: Theme.text-muted;
+                    font-size: 16px;
+                    height: 22px;
+                }
+            }
+
+            // Estados do sistema
+            VerticalLayout {
+                spacing: 12px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "Estados do sistema";
+                    color: Theme.text-main;
+                    font-size: 26px;
+                    font-weight: 750;
+                    height: 31px;
+                    vertical-alignment: center;
+                }
+
+                if OtimizacaoData.recursos.length == 0: InfoCard {
+                    card-title: "Estados do sistema";
+
+                    Text {
+                        font-family: "Inter";
+                        text: OtimizacaoData.loaded
+                            ? "Nenhum estado consultável — recursos indisponíveis neste sistema"
+                            : "Consultando o sistema…";
+                        color: Theme.text-muted;
+                        font-size: 13px;
+                    }
+                }
+
+                FlexboxLayout {
+                    width: 100%;
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    spacing-horizontal: 20px;
+                    spacing-vertical: 16px;
+                    cross-axis-alignment: stretch;
+
+                    for recurso in OtimizacaoData.recursos: OptResourceCard {
+                        resource: recurso;
+                    }
+                }
+            }
+
+            // Recomendações
+            VerticalLayout {
+                spacing: 12px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "Recomendações (analisadas a partir do sistema)";
+                    color: Theme.text-main;
+                    font-size: 26px;
+                    font-weight: 750;
+                    height: 31px;
+                    vertical-alignment: center;
+                }
+
+                if OtimizacaoData.recomendacoes.length == 0: InfoCard {
+                    card-title: "Recomendações";
+
+                    Text {
+                        font-family: "Inter";
+                        text: OtimizacaoData.loaded
+                            ? "Nenhuma recomendação aplicável aos dados detectados"
+                            : "Consultando o sistema…";
+                        color: Theme.text-muted;
+                        font-size: 13px;
+                    }
+                }
+
+                FlexboxLayout {
+                    width: 100%;
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    spacing-horizontal: 20px;
+                    spacing-vertical: 16px;
+                    cross-axis-alignment: stretch;
+
+                    for recomendacao in OtimizacaoData.recomendacoes: RecommendationCard {
+                        rec: recomendacao;
+                    }
+                }
+            }
+
+            // Perfis (estrutura)
+            VerticalLayout {
+                spacing: 12px;
+
+                Text {
+                    font-family: "Inter";
+                    text: "Perfis — estrutura (ativação em etapa futura)";
+                    color: Theme.text-main;
+                    font-size: 26px;
+                    font-weight: 750;
+                    height: 31px;
+                    vertical-alignment: center;
+                }
+
+                FlexboxLayout {
+                    width: 100%;
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    spacing-horizontal: 20px;
+                    spacing-vertical: 16px;
+                    cross-axis-alignment: stretch;
+
+                    for perfil in OtimizacaoData.perfis: PerfilCard {
+                        perfil: perfil;
+                    }
+                }
+            }
+        }
+    }
+}
+
 component PlaceholderPage inherits Rectangle {
     in property <string> page-title;
     background: Theme.page-bg;
@@ -2252,9 +2666,26 @@ export component MainWindow inherits Window {
                 TouchArea { visible: !parent.active; }
             }
 
-            // abas ainda sem página própria: placeholder animado
             tab4 := Rectangle {
-                property <bool> active: root.active-navigation >= 4;
+                property <bool> active: root.active-navigation == 4;
+                width: 100%;
+                height: 100%;
+                x: self.active ? 0px : -34px;
+                opacity: self.active ? 1.0 : 0.0;
+                visible: self.opacity > 0.001;
+                animate x, opacity { duration: 300ms; easing: ease-out; }
+
+                OtimizacaoPage {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                TouchArea { visible: !parent.active; }
+            }
+
+            // abas ainda sem página própria: placeholder animado
+            tab5 := Rectangle {
+                property <bool> active: root.active-navigation >= 5;
                 width: 100%;
                 height: 100%;
                 x: self.active ? 0px : -34px;

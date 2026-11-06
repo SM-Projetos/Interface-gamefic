@@ -113,6 +113,91 @@ fn contagem(valor: Option<u32>) -> SharedString {
     )
 }
 
+/// linha de estado do sistema para a aba Otimização; sem fonte de leitura,
+/// o detalhe fica vazio e a UI omite a linha
+fn linha_de_recurso(r: &system::recommendations::SystemResource) -> OptResource {
+    OptResource {
+        name: SharedString::from(r.name.as_str()),
+        state: SharedString::from(r.state.as_str()),
+        detail: SharedString::from(r.detail.as_deref().unwrap_or("")),
+    }
+}
+
+fn linha_de_recomendacao(r: &system::recommendations::Recommendation) -> OptRecommendation {
+    OptRecommendation {
+        title: SharedString::from(r.title.as_str()),
+        rationale: SharedString::from(r.rationale.as_str()),
+        beneficio: SharedString::from(r.expected_benefit.as_str()),
+        limitacoes: SharedString::from(r.limit_note.as_str()),
+        risk: SharedString::from(match r.risk {
+            system::recommendations::RiskLevel::Baixo => "baixo",
+            system::recommendations::RiskLevel::Medio => "medio",
+            system::recommendations::RiskLevel::Alto => "alto",
+        }),
+        actionable: r.action_available,
+    }
+}
+
+fn linha_de_perfil(p: &system::recommendations::ProfileScope) -> (String, String, Vec<SharedString>, i32, String) {
+    (
+        p.name.clone(),
+        p.description.clone(),
+        p.planned_adjustments
+            .iter()
+            .map(|a| SharedString::from(format!("• {a}")))
+            .collect(),
+        p.implemented_adjustments as i32,
+        format!(
+            "{} de {} ajustes implementáveis nesta versão",
+            p.implemented_adjustments,
+            p.planned_adjustments.len()
+        ),
+    )
+}
+
+/// análise de otimização em thread de fundo (`system::recommendations`),
+/// aplicada à UI pela event loop; disparada na inicialização e pelo
+/// refresh do global
+fn analisar(weak: slint::Weak<MainWindow>) {
+    let _ = std::thread::Builder::new()
+        .name("gamefic-analise".to_string())
+        .spawn(move || {
+            let analise = system::recommendations::analyze();
+
+            let recursos = analise.resources.iter().map(linha_de_recurso).collect::<Vec<_>>();
+            let recomendacoes = analise
+                .recommendations
+                .iter()
+                .map(linha_de_recomendacao)
+                .collect::<Vec<_>>();
+            let perfis = analise.profiles.iter().map(linha_de_perfil).collect::<Vec<_>>();
+
+            let _ = weak.upgrade_in_event_loop(move |ui| {
+                let dados = ui.global::<OtimizacaoData>();
+                dados.set_recursos(Rc::new(VecModel::from(recursos)).into());
+                dados.set_recomendacoes(Rc::new(VecModel::from(recomendacoes)).into());
+                // os modelos de lista são montados aqui na event loop: Rc
+                // não atravessa threads (mesma regra do catálogo)
+                dados.set_perfis(
+                    Rc::new(VecModel::from(
+                        perfis
+                            .into_iter()
+                            .map(|(name, description, ajustes, implemented, resumo)| OptProfile {
+                                name: name.into(),
+                                description: description.into(),
+                                adjustments: Rc::new(VecModel::from(ajustes)).into(),
+                                implemented,
+                                resumo: SharedString::from(resumo),
+                            })
+                            .collect::<Vec<_>>(),
+                    ))
+                    .into(),
+                );
+                dados.set_loaded(true);
+            });
+        });
+}
+
 /// detecção de kernel/GPUs/drivers em thread de fundo (`system::hardware`),
 /// aplicada à UI pela event loop; disparada na inicialização e pelo
 /// botão de atualizar da aba
@@ -387,8 +472,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    let otimizacao_data = ui.global::<OtimizacaoData>();
+    otimizacao_data.on_refresh({
+        let weak = ui.as_weak();
+        move || {
+            analisar(weak.clone());
+        }
+    });
+
     detectar(ui.as_weak());
     detectar_kernels(ui.as_weak());
+    analisar(ui.as_weak());
 
     ui.run()?;
     Ok(())
