@@ -268,6 +268,117 @@ fn detectar_kernels(weak: slint::Weak<MainWindow>) {
         });
 }
 
+/// linha do painel de fontes: código da fonte é assinado pelo backend
+/// e o rótulo é só apresentação; estado honesto para a lógica de loja
+fn linha_de_fonte(f: &system::install::FonteInfo) -> FonteLinha {
+    let label = if let Some(pkg) = f.fonte.strip_prefix("nativo:") {
+        format!("Repositório nativo — {pkg}")
+    } else if f.fonte == "flatpak-user" {
+        "Flatpak — instalação do usuário".to_string()
+    } else if f.fonte == "flatpak" {
+        "Flatpak — instalação do sistema".to_string()
+    } else if let Some(snome) = f.fonte.strip_prefix("snap:") {
+        format!("Snap Store — {snome}")
+    } else {
+        f.fonte.clone()
+    };
+    let estado = if f.instalado {
+        "instalado"
+    } else if f.disponivel {
+        "disponivel"
+    } else if f.indeterminado {
+        "indeterminado"
+    } else {
+        "indisponivel"
+    };
+    FonteLinha {
+        fonte: SharedString::from(f.fonte.as_str()),
+        label: SharedString::from(label),
+        estado: SharedString::from(estado),
+        versao: SharedString::from(f.versao.as_deref().unwrap_or("")),
+        detalhe: SharedString::from(f.motivo.as_deref().unwrap_or("")),
+    }
+}
+
+/// abre o painel de fontes do modal com as fontes reais do aplicativo
+/// (`install::fontes`); consultas vivas em thread de fundo, painel
+/// preenchido na event loop (Rc não atravessa threads)
+fn listar_fontes(weak: slint::Weak<MainWindow>, id: String) {
+    let _ = std::thread::Builder::new()
+        .name("gamefic-fontes".to_string())
+        .spawn(move || {
+            let fontes = system::install::fontes(&id);
+            let total = fontes.len();
+            let _ = weak.upgrade_in_event_loop(move |ui| {
+                if total == 0 {
+                    let modal = ui.global::<CatalogModal>();
+                    modal.set_fontes(Rc::new(VecModel::<FonteLinha>::from(Vec::new())).into());
+                    modal.set_painel_fontes(true);
+                    ui.global::<CatalogData>().set_acao_mensagem(
+                        "Nenhuma fonte conhecida para este aplicativo no catálogo.".into(),
+                    );
+                    return;
+                }
+                let modal = ui.global::<CatalogModal>();
+                modal.set_fontes(
+                    Rc::new(VecModel::from(
+                        fontes.iter().map(linha_de_fonte).collect::<Vec<_>>(),
+                    ))
+                    .into(),
+                );
+                modal.set_painel_fontes(true);
+                ui.global::<CatalogData>().set_acao_mensagem(
+                    "Fontes reais listadas — volte para manter as ações padrão; a ação escolhida executa no sistema e pode pedir a senha via pkexec.".into(),
+                );
+            });
+        });
+}
+
+/// ação na fonte escolhida no painel: revalidação no backend e re-listagem
+/// das fontes após execuções, usando a mesma guarda de concorrência das
+/// ações padrão
+fn acao_fonte(
+    weak: slint::Weak<MainWindow>,
+    ocupado: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    id: String,
+    fonte: String,
+    acao: String,
+) {
+    let _ = std::thread::Builder::new()
+        .name("gamefic-acao".to_string())
+        .spawn(move || {
+            if ocupado
+                .compare_exchange(
+                    false,
+                    true,
+                    std::sync::atomic::Ordering::SeqCst,
+                    std::sync::atomic::Ordering::SeqCst,
+                )
+                .is_err()
+            {
+                return mensagem(&weak, "Já existe uma operação em andamento — aguarde a conclusão.".into());
+            }
+            let livre = || {
+                ocupado.store(false, std::sync::atomic::Ordering::SeqCst);
+            };
+            mensagem(&weak, format!("Executando {acao} na fonte {fonte}… a elevação usa pkexec e pode pedir sua senha."));
+            match system::install::acao_app(&id, &acao, &fonte) {
+                Ok(msg) => {
+                    livre();
+                    mensagem(&weak, format!("Última ação: {msg} via {fonte}."));
+                    // estados mudaram: re-lista as fontes do painel e re-detecta
+                    // o catálogo para os cards e o modal refletirem o real
+                    listar_fontes(weak.clone(), id.clone());
+                    detectar(weak);
+                }
+                Err(e) => {
+                    livre();
+                    mensagem(&weak, format!("Falha em '{acao}' via {fonte}: {e}"));
+                }
+            }
+        });
+}
+
 /// mensagem de ação na caixa de informação do modal de detalhes
 fn mensagem(weak: &slint::Weak<MainWindow>, texto: String) {
     let _ = weak.upgrade_in_event_loop(move |ui| {
@@ -425,42 +536,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let weak = ui.as_weak();
         move |id| {
             let weak = weak.clone();
-            std::thread::Builder::new()
-                .name("gamefic-fontes".to_string())
-                .spawn(move || {
-                    let id = id.to_string();
-                    let fontes = system::install::fontes(&id);
-                    let texto = if fontes.is_empty() {
-                        "Nenhuma fonte conhecida para este aplicativo no catálogo.".to_string()
-                    } else {
-                        let mut linhas = Vec::new();
-                        for f in &fontes {
-                            let estado_fonte = if f.instalado {
-                                "instalado".to_string()
-                            } else if f.disponivel {
-                                "disponível".to_string()
-                            } else if f.indeterminado {
-                                "indeterminado".to_string()
-                            } else {
-                                "indisponível".to_string()
-                            };
-                            let detalhe = match (&f.versao, &f.motivo) {
-                                (Some(v), Some(m)) => format!("v{v}; {m}"),
-                                (Some(v), None) => format!("v{v}"),
-                                (None, Some(m)) => m.clone(),
-                                (None, None) => String::new(),
-                            };
-                            linhas.push(if detalhe.is_empty() {
-                                format!("• {} — {estado_fonte}", f.fonte)
-                            } else {
-                                format!("• {} — {estado_fonte} ({detalhe})", f.fonte)
-                            });
-                        }
-                        format!("Fontes reais detectadas: {}", linhas.join("  |  "))
-                    };
-                    mensagem(&weak, texto);
-                })
-                .expect("thread fontes");
+            listar_fontes(weak, id.to_string());
+        }
+    });
+
+    catalog.on_acao_fonte({
+        let weak = ui.as_weak();
+        let ocupado = ocupado.clone();
+        move |fonte, acao| {
+            let weak = weak.clone();
+            let ocupado = ocupado.clone();
+            // id do modal lido aqui na event loop, antes da thread
+            let handle = weak.clone().upgrade().expect("janela lúcida");
+            let id = handle.global::<CatalogModal>().get_app_id().to_string();
+            acao_fonte(weak, ocupado, id, fonte.to_string(), acao.to_string());
         }
     });
 

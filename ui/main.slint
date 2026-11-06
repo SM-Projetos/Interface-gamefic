@@ -52,6 +52,17 @@ struct AppInfo {
     has_update: bool,
 }
 
+// Fonte de instalação real, listada pelo backend: código da fonte
+// ("nativo:pkg" | "flatpak" | "flatpak-user" | "snap:nome"), rótulo
+// legível, estado honesto e motivo quando a consulta não foi concluída.
+struct FonteLinha {
+    fonte: string,
+    label: string,
+    estado: string,
+    versao: string,
+    detalhe: string,
+}
+
 // Dados do catálogo fornecidos pelo backend (detecção em thread de fundo,
 // aplicada pela event loop do Slint). Enquanto `loaded` é falso, as páginas
 // mostram o estado de carregamento; nenhum card exibe estado inventado.
@@ -72,6 +83,8 @@ export global CatalogData {
     callback abrir-app(string);
     callback acao-app(string, string);
     callback fontes-app(string);
+    // ação na fonte escolhida no painel: (fonte, acao) — o id é o do modal
+    callback acao-fonte(string, string);
 }
 
 // Estado compartilhado da janela de detalhes do catálogo: vive em escopo global
@@ -88,6 +101,11 @@ export global CatalogModal {
     in-out property <string> source;
     in-out property <bool> has-update;
 
+    // Painel de fontes reais do aplicativo (nativo/Flatpak/Snap): estados
+    // e ações vêm do backend; a escolha nunca é inventada aqui.
+    in-out property <bool> painel-fontes: false;
+    in-out property <[FonteLinha]> fontes: [];
+
     // Abre a janela de detalhes com o contexto do cartão selecionado.
     public function open-from-app(app: AppInfo, app-category: string) {
         self.app-id = app.id;
@@ -99,6 +117,7 @@ export global CatalogModal {
         self.developer = app.developer;
         self.source = app.source;
         self.has-update = app.has_update;
+        self.painel-fontes = false;
         CatalogData.acao-mensagem = "Aplicativo: " + app.name + ". Ações executam no sistema real; a instalação pode pedir sua senha via pkexec.";
         self.open = true;
     }
@@ -947,6 +966,115 @@ component ModalAction inherits Rectangle {
 // não intercepta cliques), preservando o comportamento do modal condicional.
 // A abertura anima backdrop (fade) e cartão: width/height centralizados
 // produzem o efeito de zoom em 300ms.
+// Pill pequena de classificação (fabricante da GPU, estado da ferramenta)
+// no mesmo estilo dos chips de estado do catálogo.
+component Pill inherits Rectangle {
+    in property <string> pill-text;
+    in property <bool> pill-on;
+    height: 22px;
+    border-radius: 11px;
+    background: root.pill-on ? Theme.status-installed : Theme.nav-hover;
+    border-width: root.pill-on ? 0px : 1px;
+    border-color: Theme.card-border;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        alignment: center;
+
+        Text {
+            font-family: "Inter";
+            font-size: 11px;
+            font-weight: 700;
+            color: root.pill-on ? #ffffff : Theme.text-muted;
+            text: root.pill-text;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Linha de fonte real no painel de escolha: rótulo da fonte (nativo,
+// Flatpak sistema/usuário, Snap), estado honesto e, na lógica de loja,
+// botão conforme o estado — instalada só remove; disponível instala;
+// indisponível/inconclusiva só explica, sem comando.
+component FonteRow inherits Rectangle {
+    in property <FonteLinha> fonte;
+    min-height: 66px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    background: Theme.dark-mode ? #092440 : #eef6fc;
+
+    VerticalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        spacing: 6px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 10px;
+
+            Text {
+                horizontal-stretch: 1;
+                font-family: "Inter";
+                font-size: 13.5px;
+                font-weight: 700;
+                color: Theme.text-main;
+                text: root.fonte.label;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+
+            Text {
+                font-family: "Inter";
+                font-size: 12px;
+                color: Theme.text-muted;
+                text: root.fonte.versao == "" ? "" : "v" + root.fonte.versao;
+                vertical-alignment: center;
+            }
+
+            Pill {
+                pill-text: root.fonte.estado == "instalado"
+                    ? "Instalada"
+                    : root.fonte.estado == "disponivel"
+                    ? "Disponível" : root.fonte.estado == "indeterminado"
+                    ? "Não confirmada" : "Não disponível";
+                pill-on: root.fonte.estado == "instalado";
+            }
+
+            // lógica de loja na fonte: instalada só tem remover; disponível
+            // só instala; os demais estados não ofertam comando algum
+            if root.fonte.estado == "instalado": ModalAction {
+                width: 108px;
+                label: "Remover";
+                variant: "danger";
+                clicked => {
+                    CatalogData.acao-fonte(root.fonte.fonte, "remover");
+                }
+            }
+
+            if root.fonte.estado == "disponivel": ModalAction {
+                width: 108px;
+                label: "Instalar";
+                variant: "primary";
+                clicked => {
+                    CatalogData.acao-fonte(root.fonte.fonte, "instalar");
+                }
+            }
+        }
+
+        if root.fonte.detalhe != "": Text {
+            font-family: "Inter";
+            font-size: 11.5px;
+            color: Theme.text-muted;
+            text: root.fonte.detalhe;
+            wrap: word-wrap;
+        }
+    }
+}
+
 component DetailsDialog inherits Rectangle {
     width: 100%;
     height: 100%;
@@ -1085,7 +1213,8 @@ component DetailsDialog inherits Rectangle {
                 }
 
                 HorizontalLayout {
-                    height: 82px;
+                    visible: !CatalogModal.painel-fontes;
+                    height: CatalogModal.painel-fontes ? 0px : 82px;
                     spacing: 12px;
 
                     DetailTile {
@@ -1110,7 +1239,80 @@ component DetailsDialog inherits Rectangle {
                     background: Theme.separator;
                 }
 
+                // Painel de fontes: substitui a área de ações enquanto aberto;
+                // lista apenas fontes reais detectadas para o aplicativo.
+                if CatalogModal.painel-fontes: VerticalLayout {
+                    spacing: 8px;
+                    height: 280px;
+
+                    Text {
+                        font-family: "Inter";
+                        text: "Fontes de instalação";
+                        color: Theme.text-main;
+                        font-size: 18px;
+                        font-weight: 750;
+                    }
+
+                    Text {
+                        font-family: "Inter";
+                        text: "Fontes reais detectadas para " + CatalogModal.name + " neste sistema. Ações executam com validação no backend e podem pedir a senha via pkexec.";
+                        color: Theme.text-muted;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+
+                    ScrollView {
+                        vertical-scrollbar-policy: as-needed;
+                        horizontal-scrollbar-policy: always-off;
+                        mouse-drag-pan-enabled: true;
+
+                        VerticalLayout {
+                            spacing: 10px;
+
+                            for fonte in CatalogModal.fontes: FonteRow {
+                                fonte: fonte;
+                            }
+
+                            if CatalogModal.fontes.length == 0: Text {
+                                height: 60px;
+                                font-family: "Inter";
+                                text: "Nenhuma fonte conhecida para este aplicativo no catálogo.";
+                                color: Theme.text-muted;
+                                font-size: 13px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        height: 44px;
+                        spacing: 10px;
+
+                        ModalAction {
+                            width: 118px;
+                            label: "Voltar";
+                            variant: "secondary";
+                            clicked => {
+                                CatalogModal.painel-fontes = false;
+                            }
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            background: #00000000;
+                        }
+
+                        ModalAction {
+                            width: 118px;
+                            label: "Fechar";
+                            variant: "secondary";
+                            clicked => { CatalogModal.open = false; }
+                        }
+                    }
+                }
+
                 VerticalLayout {
+                    visible: !CatalogModal.painel-fontes;
                     spacing: 8px;
 
                     Text {
@@ -1457,32 +1659,6 @@ component InfoCard inherits Rectangle {
     }
 }
 
-// Pill pequena de classificação (fabricante da GPU, estado da ferramenta)
-// no mesmo estilo dos chips de estado do catálogo.
-component Pill inherits Rectangle {
-    in property <string> pill-text;
-    in property <bool> pill-on;
-    height: 22px;
-    border-radius: 11px;
-    background: root.pill-on ? Theme.status-installed : Theme.nav-hover;
-    border-width: root.pill-on ? 0px : 1px;
-    border-color: Theme.card-border;
-
-    HorizontalLayout {
-        padding-left: 10px;
-        padding-right: 10px;
-        alignment: center;
-
-        Text {
-            font-family: "Inter";
-            font-size: 11px;
-            font-weight: 700;
-            color: root.pill-on ? #ffffff : Theme.text-muted;
-            text: root.pill-text;
-            vertical-alignment: center;
-        }
-    }
-}
 
 // Card de GPU: pill do fabricante, modelo e dados de PCI/driver reais.
 component GpuCard inherits Rectangle {
@@ -2101,6 +2277,7 @@ component OtimizacaoPage inherits Rectangle {
         }
     }
 }
+
 
 component PlaceholderPage inherits Rectangle {
     in property <string> page-title;
