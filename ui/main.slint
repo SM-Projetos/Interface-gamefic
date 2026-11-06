@@ -725,7 +725,6 @@ component AppIcon inherits Rectangle {
 
 component AppCard inherits Rectangle {
     in property <AppInfo> app;
-    in property <bool> highlighted;
     callback activated(AppInfo);
 
     preferred-width: 323px;
@@ -733,13 +732,13 @@ component AppCard inherits Rectangle {
     max-width: 323px;
     height: 212px;
     border-radius: 22px;
-    border-width: root.highlighted || touch.has-hover ? 2px : 1px;
-    border-color: root.highlighted || touch.has-hover ? Theme.accent : Theme.card-border;
-    background: root.highlighted || touch.has-hover ? Theme.card-bg-highlight : Theme.card-bg;
+    border-width:     touch.has-hover ? 2px : 1px;
+    border-color:     touch.has-hover ? Theme.accent : Theme.card-border;
+    background:     touch.has-hover ? Theme.card-bg-highlight : Theme.card-bg;
     drop-shadow-offset-x: 0px;
     drop-shadow-offset-y: 7px;
-    drop-shadow-blur: root.highlighted || touch.has-hover ? 19px : 12px;
-    drop-shadow-color: root.highlighted || touch.has-hover
+    drop-shadow-blur:     touch.has-hover ? 19px : 12px;
+    drop-shadow-color:     touch.has-hover
         ? (Theme.dark-mode ? rgba(0, 190, 220, 0.22) : rgba(30, 130, 180, 0.20))
         : (Theme.dark-mode ? rgba(0, 8, 18, 0.30) : rgba(80, 130, 170, 0.13));
 
@@ -806,13 +805,14 @@ component AppCard inherits Rectangle {
                             ? @image-url("../assets/icons/status-installed.svg")
                             : @image-url("../assets/icons/status-available.svg");
                         width: 14px;
-                        height: 14px;
+                        height: 20px;
                         image-fit: contain;
                         colorize: root.app.estado == "instalado" ? #ffffff : Theme.status-not-installed-text;
                         vertical-alignment: center;
                     }
                     Text {
 
+                        height: 20px;
                         font-family: "Inter";
                         text: root.app.estado == "instalado"
                             ? "Instalado"
@@ -839,7 +839,6 @@ component AppCard inherits Rectangle {
 component AppCategory inherits VerticalLayout {
     in property <string> category-title;
     in property <[AppInfo]> apps;
-    in property <string> selected-app;
     callback app-selected(AppInfo);
 
     spacing: 17px;
@@ -865,7 +864,6 @@ component AppCategory inherits VerticalLayout {
 
         for app in root.apps: AppCard {
             app: app;
-            highlighted: app.name == root.selected-app;
             activated(e) => {
                 CatalogModal.open-from-app(e, root.category-title);
                 root.app-selected(e);
@@ -1480,28 +1478,24 @@ component AppCatalogPage inherits Rectangle {
 
             AppCategory {
                 category-title: "Launchers";
-                selected-app: root.selected-app;
                 apps: CatalogData.launchers;
                 app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Emuladores";
-                selected-app: root.selected-app;
                 apps: CatalogData.emuladores;
                 app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Ferramentas de jogos";
-                selected-app: root.selected-app;
                 apps: CatalogData.tools;
                 app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Compatibilidade";
-                selected-app: root.selected-app;
                 apps: CatalogData.compatibilidade;
                 app-selected(app) => { root.app-selected(app); }
             }
@@ -1565,28 +1559,24 @@ component ContentPage inherits Rectangle {
 
             AppCategory {
                 category-title: "Gravação e Stream";
-                selected-app: root.selected-app;
                 apps: CatalogData.criacao-gravacao;
                 app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Vídeo";
-                selected-app: root.selected-app;
                 apps: CatalogData.criacao-video;
                 app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Áudio";
-                selected-app: root.selected-app;
                 apps: CatalogData.criacao-audio;
                 app-selected(app) => { root.app-selected(app); }
             }
 
             AppCategory {
                 category-title: "Social";
-                selected-app: root.selected-app;
                 apps: CatalogData.criacao-social;
                 app-selected(app) => { root.app-selected(app); }
             }
@@ -2783,8 +2773,7 @@ export component MainWindow inherits Window {
                 AppCatalogPage {
                     width: 100%;
                     height: 100%;
-                    selected-app: root.selected-app;
-                    app-selected(app) => { root.selected-app = app.name; }
+                        app-selected(app) => { root.selected-app = app.name; }
                 }
 
                 TouchArea { visible: !parent.active; }
@@ -2802,8 +2791,7 @@ export component MainWindow inherits Window {
                 ContentPage {
                     width: 100%;
                     height: 100%;
-                    selected-app: root.selected-app;
-                    app-selected(app) => { root.selected-app = app.name; }
+                        app-selected(app) => { root.selected-app = app.name; }
                 }
 
                 TouchArea { visible: !parent.active; }
